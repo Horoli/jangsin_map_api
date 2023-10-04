@@ -13,33 +13,40 @@ module.exports = {
 
       // res.type("text/html").send(getHtml);
 
-      const lat = 37.3595804;
-      const lng = 127.105399;
+      const title = "hello";
+
+      const lat = "37.4824419369998";
+      const lng = "126.84983521857548";
 
       var html = `
-<!DOCTYPE html>
-<html>
+          <!DOCTYPE html>
+          <html>
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
-    <title>간단한 지도 표시하기</title>
-    <script type="text/javascript"
-        src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=rey7y37ny0"></script>
-</head>
+          <head>
+              <meta charset="UTF-8">
+              <meta http-equiv="X-UA-Compatible" content="IE=edge">
+              <meta name="viewport"
+                  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+              <title>${title}</title>
+              <script type="text/javascript"
+                  src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=rey7y37ny0"></script>
+          </head>
 
-<body>
-    <div id="map" style="width:60%;height:600px;margin:0 auto;"></div>
+          <body>
+              <div id="map" style="width:60%;height:600px;margin:0 auto;"></div>
+              <script>
+              var center = new naver.maps.LatLng(${lat}, ${lng});
+              var mapOptions = { center: center, zoom: 20 };
+              var map = new naver.maps.Map('map', mapOptions);
 
-    <script>
-      var map = new naver.maps.Map('map', mapOptions);
-      var mapOptions = { center: new naver.map.LatLng(${lat}, ${lng}), zoom: 10 };
-    </script>
-</body>
+              var marker = new naver.maps.Marker({
+                position: center,
+                map: map,
+              });
+              </script>
+          </body>
 
-</html>
+          </html>
       `
 
       res.type("text/html").send(html);
