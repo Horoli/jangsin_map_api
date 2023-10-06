@@ -29,6 +29,9 @@ module.exports = {
     },
   },
 
+  // TODO : 시/도로 쿼리
+  "GET /country": {},
+
   "GET /latlng": {
     async handler(req, res) {
       const jangsinCol = await MongoDB.getCollection("map");
