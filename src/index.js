@@ -1,6 +1,7 @@
 const Fastify = require("fastify");
 const Fs = require("fs");
 const Path = require("path");
+const Cors = require("@fastify/cors");
 const MongoDB = require("./mongodb");
 
 class WebServer {
@@ -78,7 +79,7 @@ class WebServer {
 
   start() {
     // TODO : add cors
-    // this.$webServer.register()
+    this.$webServer.register(Cors, { origin: "*" });
 
     this.$webServer.listen({
       host: this.$opts.host,

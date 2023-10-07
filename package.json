@@ -10,8 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fastify/cors": "^8.4.0",
     "axios": "^1.5.1",
     "fastify": "^4.23.2",
+    "fastify-cors": "^6.1.0",
     "mongodb": "^5.7.0"
   }
 }
