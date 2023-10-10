@@ -1,10 +1,11 @@
 const Path = require("path");
 const Fs = require("fs");
 const MongoDB = require("../mongodb");
+const Utility = require("../utility");
 
 module.exports = {
   "POST /create": {
-    middlewares: ["auth"],
+    // middlewares: ["auth"],
     async handler(req, res) {
       const {
         type,
@@ -41,9 +42,10 @@ module.exports = {
         return error;
       }
 
-      const jangsinCol = await MongoDB.getCollection("map");
+      const jangsinCol = await MongoDB.getCollection("restaurant");
 
       const newData = {
+        id: Utility.UUID(),
         type: type ?? "restaurant",
         label: label,
         contact: contact,
@@ -79,7 +81,7 @@ module.exports = {
   "GET /get": {
     middlewares: ["app"],
     async handler(req, res) {
-      const jangsinCol = await MongoDB.getCollection("map");
+      const jangsinCol = await MongoDB.getCollection("restaurant");
       const getData = await jangsinCol.find().toArray();
       return {
         status: 200,
@@ -94,7 +96,7 @@ module.exports = {
   "GET /latlng": {
     middlewares: ["app"],
     async handler(req, res) {
-      const jangsinCol = await MongoDB.getCollection("map");
+      const jangsinCol = await MongoDB.getCollection("restaurant");
       // TODO : mongodb project을 사용해서 lat,lng데이터만 쿼리
       const getData = await jangsinCol
         .find({ type: "restaurant" })
