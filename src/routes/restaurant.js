@@ -156,6 +156,7 @@ module.exports = {
         lng: lng ?? getDataById.lng,
         address_sido: address_sido ?? getDataById.address_sido,
         address_sigungu: address_sigungu ?? getDataById.address_sigungu,
+        address_eupmyeondong: address_eupmyeondong ?? getDataById.address_eupmyeondong,
         address_detail: address_detail ?? getDataById.address_detail,
         address_street: address_street ?? getDataById.address_street,
         closed_days: closed_days ?? getDataById.closed_days,
