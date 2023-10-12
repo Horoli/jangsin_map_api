@@ -8,6 +8,7 @@ module.exports = {
     // middlewares: ["auth"],
     async handler(req, res) {
       const {
+        id,
         label,
         contact,
         info,
@@ -30,6 +31,11 @@ module.exports = {
         thumbnail,
       } = req.body;
 
+      // TODO : id가 입력되었으면 에러처리
+      if (id !== undefined) {
+        return Utility.ERROR(req.raw.url, "remove input id", 400)
+      }
+
       // TODO : 필수 파라미터가 없으면 에러 처리
       if (
         label === undefined ||
@@ -37,7 +43,7 @@ module.exports = {
         lat === undefined ||
         lng === undefined
       ) {
-        return Utility.ERROR("post /create : Error[required parameter is empty]", 400)
+        return Utility.ERROR(req.raw.url, "required parameter is empty", 400)
       }
       const jangsinCol = await MongoDB.getCollection("restaurant");
 
