@@ -6,6 +6,12 @@ class Utility {
     if (dashless) uuid = uuid.replace(/-/g, "");
     return uuid;
   }
+
+  static ERROR(url, message, statusCode) {
+    const error = new Error(`${url} error : [${message}]`);
+    error.status = statusCode;
+    return error;
+  }
 }
 
 module.exports = Utility;

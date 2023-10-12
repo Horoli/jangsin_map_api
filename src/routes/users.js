@@ -12,15 +12,11 @@ module.exports = {
       const usersCol = await MongoDB.getCollection("users");
       const isDuplicate = (await usersCol.findOne({ id: id })) === null;
       if (!isDuplicate) {
-        const error = new Error();
-        error.message = "Error : duplicated id";
-        return error;
+        return Utility.ERROR(req.raw.url, 'duplicated id', 403)
       }
 
       if (type === undefined) {
-        const error = new Error();
-        error.message = "Error : please type select.";
-        return error;
+        return Utility.ERROR(req.raw.url, 'please type select', 403)
       }
 
       const hashedPassword = await Bcrypt.hash(pw, 10);
@@ -43,17 +39,13 @@ module.exports = {
       const userInfo = await usersCol.findOne({ id: id });
 
       if (userInfo === null) {
-        const error = new Error();
-        error.message = "id is not exist.";
-        return error;
+        return Utility.ERROR(req.raw.url, 'id is not exist', 403)
       }
 
       const isValidPassword = await Bcrypt.compare(pw, userInfo.pw);
 
       if (!isValidPassword) {
-        const error = new Error();
-        error.message = "invalid password";
-        return error;
+        return Utility.ERROR(req.raw.url, 'invalid password', 403)
       }
 
       const getTokensById = await tokensCol.find({ id: id }).toArray();
