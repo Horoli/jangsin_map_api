@@ -193,8 +193,7 @@ module.exports = {
         message: `${new Date().toLocaleString()} [${label}] update complete`,
       }
     }
-  }
-  ,
+  },
 
   "GET /get": {
     middlewares: ["app"],
@@ -206,6 +205,67 @@ module.exports = {
         data: getData,
       };
     },
+  },
+
+  "GET /pagination/:page:limit:sido:sigungu": {
+    middlewares: ["app"],
+    async handler(req, res) {
+      const selectedPage = parseInt(req.query.page);
+      const limit = parseInt(req.query.limit);
+      const sido = req.query.sido;
+      const sigungu = req.query.sigungu;
+      const jangsinCol = await MongoDB.getCollection("restaurant");
+
+      const startIndex = (selectedPage - 1) * limit;
+      // TODO : sido가 입력되었으면 sido로 쿼리
+      if (sido !== undefined && sigungu === undefined) {
+        const queryData = await jangsinCol.find({ address_sido: sido }).skip(startIndex).limit(limit).toArray();
+        const queryCount = await jangsinCol.count({ address_sido: sido });
+        const totalQueryPage = Math.ceil(queryCount / limit);
+
+        return {
+          status: 200,
+          message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
+          data: {
+            total_page: totalQueryPage,
+            selected_page: selectedPage,
+            pagination_data: queryData,
+          }
+        };
+      }
+
+      // TODO : sido가 입력되고, sigungu도 입력되면 sido, sigungu로 쿼리
+      if (sido !== undefined && sigungu !== undefined) {
+        const queryData = await jangsinCol.find({ address_sido: sido, address_sigungu: sigungu }).skip(startIndex).limit(limit).toArray();
+        const queryCount = await jangsinCol.count({ address_sido: sido, address_sigungu: sigungu });
+        const totalQueryPage = Math.ceil(queryCount / limit);
+        return {
+          status: 200,
+          message: `sido + sigungu || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
+          data: {
+            total_page: totalQueryPage,
+            selected_page: selectedPage,
+            pagination_data: queryData,
+          }
+        };
+      }
+
+      const totalDataCount = await jangsinCol.count();
+      const totalPage = Math.ceil(totalDataCount / limit);
+
+      if (selectedPage > totalPage) return Utility.ERROR(req.raw.url, "page is over", 400)
+      const getPagination = await jangsinCol.find().skip(startIndex).limit(limit).toArray();
+
+      return {
+        status: 200,
+        message: `total_page : ${totalPage} || pagination : ${selectedPage}`,
+        data: {
+          total_page: totalPage,
+          selected_page: selectedPage,
+          pagination_data: getPagination,
+        },
+      };
+    }
   },
 
   // TODO : 시/도로 쿼리
