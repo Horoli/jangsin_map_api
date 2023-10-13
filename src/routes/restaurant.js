@@ -61,10 +61,6 @@ module.exports = {
         return Utility.ERROR(req.raw.url, "lat, lng aren't number(double)", 400)
       }
 
-
-
-
-
       // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
       const newRestaurant = {
         id: Utility.UUID(),
