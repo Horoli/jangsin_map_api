@@ -47,11 +47,22 @@ module.exports = {
       }
       const jangsinCol = await MongoDB.getCollection("restaurant");
 
-      const getDataByLabel = await jangsinCol.find({ label: label }).toArray();
+      const getDataByLabel = await jangsinCol.findOne({ label: label });
+      console.log('getDataByLabel', getDataByLabel);
       // TODO : 가게명이 중복되면 에러 처리
-      if (getDataByLabel !== null) {
+      if (getDataByLabel != null) {
         return Utility.ERROR(req.raw.url, "Duplicated label", 400)
       }
+
+      console.log('typeof lat', typeof lat, typeof lat === "number");
+
+
+      if (typeof lat !== "number" || typeof lng !== "number") {
+        return Utility.ERROR(req.raw.url, "lat, lng aren't number(double)", 400)
+      }
+
+
+
 
 
       // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
@@ -214,7 +225,7 @@ module.exports = {
       const jangsinCol = await MongoDB.getCollection("restaurant");
       // TODO : mongodb project을 사용해서 lat,lng데이터만 쿼리
       const getData = await jangsinCol
-        .find({ type: "restaurant" })
+        .find()
         .project({ _id: 0, lat: 1, lng: 1 })
         .toArray();
       // TODO : client에서 선택된 데이터만 가져와서 초기값을 활용해 marker를 추가
