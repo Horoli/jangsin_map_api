@@ -2,6 +2,7 @@ const Path = require("path");
 const Fs = require("fs");
 const MongoDB = require("../mongodb");
 const Utility = require("../utility");
+const { get } = require("http");
 
 module.exports = {
   "POST /create": {
@@ -28,11 +29,9 @@ module.exports = {
         youtube_uploadedAt,
         youtube_link,
         baemin_link,
-        thumbnail,
       } = req.body;
 
-      let thumbnail_id = "";
-      console.log("aaaaaaaaaaaa");
+      let { thumbnail, add_thumbnail } = req.body;
 
       // TODO : id가 입력되었으면 에러처리
       if (id !== "") {
@@ -76,15 +75,20 @@ module.exports = {
         );
       }
 
-      if (thumbnail !== undefined) {
+      console.log("add_thumbnail", add_thumbnail);
+      if (add_thumbnail !== undefined) {
         const uuid = Utility.UUID(true);
-        const base64Data = thumbnail.replace(/^data:image\/jpeg;base64,/, "");
+        const base64Data = add_thumbnail.replace(
+          /^data:image\/jpeg;base64,/,
+          ""
+        );
+        console.log(base64Data);
         await imageCol.insertOne({
           id: uuid,
           image: base64Data,
           type: "thumbnail",
         });
-        thumbnail_id = uuid;
+        thumbnail = uuid;
       }
 
       // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
@@ -109,7 +113,7 @@ module.exports = {
         youtube_uploadedAt: youtube_uploadedAt ?? "", // 유튜브 업로드일자
         youtube_link: youtube_link ?? "", // 유튜브 링크
         baemin_link: baemin_link ?? "", // 배민링크
-        thumbnail: thumbnail_id ?? "", // 썸네일 이미지 Id
+        thumbnail: thumbnail ?? "", // 썸네일 이미지 Id
       };
 
       restaurantCol.insertOne(newRestaurant);
@@ -146,13 +150,14 @@ module.exports = {
         youtube_uploadedAt,
         youtube_link,
         baemin_link,
-        thumbnail,
       } = req.body;
+
+      let { thumbnail, add_thumbnail } = req.body;
 
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const imageCol = await MongoDB.getCollection("image");
       const getDataById = await restaurantCol.findOne({ id: id });
-      let patch_thumbnail_id = "";
+      // let patch_thumbnail_id = "";
 
       // TODO : 일치하는 id가 없으면 에러 처리
       if (getDataById === null) {
@@ -186,39 +191,45 @@ module.exports = {
       }
 
       // TODO : 기존에 저장된 이미지가 없고, 이미지가 없을 떄
-      if (thumbnail === "" && getDataById.thumbnail === "") {
-        patch_thumbnail_id = "";
+      if (add_thumbnail === "" && getDataById.thumbnail === "") {
+        thumbnail = "";
       }
 
       // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 없을 때
-      if (thumbnail === "" && getDataById.thumbnail !== "") {
-        patch_thumbnail_id = getDataById.thumbnail;
+      if (add_thumbnail === "" && getDataById.thumbnail !== "") {
+        thumbnail = getDataById.thumbnail;
       }
 
       // TODO : 기존에 저장된 이미지가 없고, 새로운 이미지가 있을 때
-      if (thumbnail !== "" && getDataById.thumbnail === "") {
+      if (add_thumbnail !== "" && getDataById.thumbnail === "") {
         const uuid = Utility.UUID(true);
-        const base64Data = thumbnail.replace(/^data:image\/jpeg;base64,/, "");
+        const base64Data = add_thumbnail.replace(
+          /^data:image\/jpeg;base64,/,
+          ""
+        );
         await imageCol.insertOne({
           id: uuid,
           image: base64Data,
           type: "thumbnail",
         });
-        patch_thumbnail_id = uuid;
+        thumbnail = uuid;
       }
 
       // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 있을 때
-      if (thumbnail !== "" && getDataById.thumbnail !== "") {
+      if (add_thumbnail !== "" && getDataById.thumbnail !== "") {
         await imageCol.deleteOne({ id: getDataById.thumbnail });
 
         const uuid = Utility.UUID(true);
-        const base64Data = thumbnail.replace(/^data:image\/jpeg;base64,/, "");
+        const base64Data = add_thumbnail.replace(
+          /^data:image\/jpeg;base64,/,
+          ""
+        );
         await imageCol.insertOne({
           id: uuid,
           image: base64Data,
           type: "thumbnail",
         });
-        patch_thumbnail_id = uuid;
+        thumbnail = uuid;
       }
 
       // TODO : update시 기존 데이터를 유지하고 변경된 데이터만 update
@@ -245,7 +256,7 @@ module.exports = {
           youtube_uploadedAt ?? getDataById.youtube_uploadedAt,
         youtube_link: youtube_link ?? getDataById.youtube_link,
         baemin_link: baemin_link ?? getDataById.baemin_link,
-        thumbnail: patch_thumbnail_id,
+        thumbnail: thumbnail ?? getDataById.thumbnail,
       };
 
       restaurantCol.updateOne({ id: id }, { $set: updateRestaurant });

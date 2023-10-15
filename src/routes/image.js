@@ -5,17 +5,17 @@ module.exports = {
   "POST /thumbnail": {
     middlewares: ["app"],
     async handler(req, res) {
-      const { thumbnail_id } = req.body;
+      const { thumbnail } = req.body;
 
-      if (thumbnail_id === "" || thumbnail_id === undefined) {
+      if (thumbnail === "" || thumbnail === undefined) {
         return Utility.ERROR(req.raw.url, "thumbnail_id is empty", 400);
       }
 
       const imageCol = await MongoDB.getCollection("image");
 
-      console.log(thumbnail_id);
+      console.log(thumbnail);
 
-      const getThumbnail = await imageCol.findOne({ id: thumbnail_id });
+      const getThumbnail = await imageCol.findOne({ id: thumbnail });
 
       return {
         statusCode: 200,
