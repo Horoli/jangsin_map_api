@@ -12,18 +12,18 @@ module.exports = {
       const usersCol = await MongoDB.getCollection("users");
       const isDuplicate = (await usersCol.findOne({ id: id })) === null;
       if (!isDuplicate) {
-        return Utility.ERROR(req.raw.url, 'duplicated id', 403)
+        return Utility.ERROR(req.raw.url, "duplicated id", 403);
       }
 
       if (type === undefined) {
-        return Utility.ERROR(req.raw.url, 'please type select', 403)
+        return Utility.ERROR(req.raw.url, "please type select", 403);
       }
 
       const hashedPassword = await Bcrypt.hash(pw, 10);
       usersCol.insertOne({ id: id, pw: hashedPassword, type: type });
 
       return {
-        status: 200,
+        statusCode: 200,
         message: `${new Date().toLocaleString()} [${id}] sign_up complete`,
       };
     },
@@ -39,13 +39,13 @@ module.exports = {
       const userInfo = await usersCol.findOne({ id: id });
 
       if (userInfo === null) {
-        return Utility.ERROR(req.raw.url, 'id is not exist', 403)
+        return Utility.ERROR(req.raw.url, "id is not exist", 403);
       }
 
       const isValidPassword = await Bcrypt.compare(pw, userInfo.pw);
 
       if (!isValidPassword) {
-        return Utility.ERROR(req.raw.url, 'invalid password', 403)
+        return Utility.ERROR(req.raw.url, "invalid password", 403);
       }
 
       const getTokensById = await tokensCol.find({ id: id }).toArray();
@@ -63,7 +63,7 @@ module.exports = {
       });
 
       return {
-        status: 200,
+        statusCode: 200,
         message: `${new Date().toLocaleString()} [${id}] sign_in complete`,
         data: { token: token },
       };

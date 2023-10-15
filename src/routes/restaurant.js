@@ -115,7 +115,7 @@ module.exports = {
       restaurantCol.insertOne(newRestaurant);
 
       return {
-        status: 200,
+        statusCode: 200,
         message: `${new Date().toLocaleString()} [${label}] update complete`,
         data: {},
       };
@@ -251,7 +251,7 @@ module.exports = {
       restaurantCol.updateOne({ id: id }, { $set: updateRestaurant });
 
       return {
-        status: 200,
+        statusCode: 200,
         message: `${new Date().toLocaleString()} [${label}] update complete`,
         data: {},
       };
@@ -264,7 +264,7 @@ module.exports = {
       const jangsinCol = await MongoDB.getCollection("restaurant");
       const getData = await jangsinCol.find().toArray();
       return {
-        status: 200,
+        statusCode: 200,
         data: getData,
       };
     },
@@ -277,21 +277,27 @@ module.exports = {
       const limit = parseInt(req.query.limit);
       const sido = req.query.sido;
       const sigungu = req.query.sigungu;
-      const jangsinCol = await MongoDB.getCollection("restaurant");
+      const restaurantCol = await MongoDB.getCollection("restaurant");
+      const totalCount = await restaurantCol.count();
+
+      if (totalCount === 0) {
+        console.log(totalCount);
+        return Utility.ERROR(req.raw.url, "restaurantCol is empty", 400);
+      }
 
       const startIndex = (selectedPage - 1) * limit;
       // TODO : sido가 입력되었으면 sido로 쿼리
       if (sido !== undefined && sigungu === undefined) {
-        const queryData = await jangsinCol
+        const queryData = await restaurantCol
           .find({ address_sido: sido })
           .skip(startIndex)
           .limit(limit)
           .toArray();
-        const queryCount = await jangsinCol.count({ address_sido: sido });
+        const queryCount = await restaurantCol.count({ address_sido: sido });
         const totalQueryPage = Math.ceil(queryCount / limit);
 
         return {
-          status: 200,
+          statusCode: 200,
           message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
           data: {
             total_page: totalQueryPage,
@@ -303,18 +309,18 @@ module.exports = {
 
       // TODO : sido가 입력되고, sigungu도 입력되면 sido, sigungu로 쿼리
       if (sido !== undefined && sigungu !== undefined) {
-        const queryData = await jangsinCol
+        const queryData = await restaurantCol
           .find({ address_sido: sido, address_sigungu: sigungu })
           .skip(startIndex)
           .limit(limit)
           .toArray();
-        const queryCount = await jangsinCol.count({
+        const queryCount = await restaurantCol.count({
           address_sido: sido,
           address_sigungu: sigungu,
         });
         const totalQueryPage = Math.ceil(queryCount / limit);
         return {
-          status: 200,
+          statusCode: 200,
           message: `sido + sigungu || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
           data: {
             total_page: totalQueryPage,
@@ -324,19 +330,19 @@ module.exports = {
         };
       }
 
-      const totalDataCount = await jangsinCol.count();
+      const totalDataCount = await restaurantCol.count();
       const totalPage = Math.ceil(totalDataCount / limit);
 
       if (selectedPage > totalPage)
         return Utility.ERROR(req.raw.url, "page is over", 400);
-      const getPagination = await jangsinCol
+      const getPagination = await restaurantCol
         .find()
         .skip(startIndex)
         .limit(limit)
         .toArray();
 
       return {
-        status: 200,
+        statusCode: 200,
         message: `total_page : ${totalPage} || pagination : ${selectedPage}`,
         data: {
           total_page: totalPage,
@@ -370,7 +376,7 @@ module.exports = {
       // TODO : client에서 선택된 데이터만 가져와서 초기값을 활용해 marker를 추가
 
       return {
-        status: 200,
+        statusCode: 200,
         data: getData,
       };
     },
