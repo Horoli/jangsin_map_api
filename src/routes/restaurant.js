@@ -31,34 +31,60 @@ module.exports = {
         thumbnail,
       } = req.body;
 
+      let thumbnail_id = "";
+      console.log("aaaaaaaaaaaa");
+
       // TODO : id가 입력되었으면 에러처리
-      if (id !== undefined) {
-        return Utility.ERROR(req.raw.url, "remove input id", 400)
+      if (id !== "") {
+        return Utility.ERROR(req.raw.url, "remove input id", 400);
       }
 
       // TODO : 필수 파라미터가 없으면 에러 처리
       if (
         label === undefined ||
+        label === "" ||
+        address_sido === undefined ||
+        address_sido === "" ||
+        address_sigungu === undefined ||
+        address_sigungu === "" ||
         contact === undefined ||
+        contact === "" ||
         lat === undefined ||
-        lng === undefined
+        lat === 0 ||
+        lng === undefined ||
+        lng === 0
       ) {
-        return Utility.ERROR(req.raw.url, "required parameter is empty", 400)
+        return Utility.ERROR(req.raw.url, "required parameter is empty", 400);
       }
-      const jangsinCol = await MongoDB.getCollection("restaurant");
+      const restaurantCol = await MongoDB.getCollection("restaurant");
+      const imageCol = await MongoDB.getCollection("image");
 
-      const getDataByLabel = await jangsinCol.findOne({ label: label });
-      console.log('getDataByLabel', getDataByLabel);
+      const getDataByLabel = await restaurantCol.findOne({ label: label });
+      console.log("getDataByLabel", getDataByLabel);
       // TODO : 가게명이 중복되면 에러 처리
       if (getDataByLabel != null) {
-        return Utility.ERROR(req.raw.url, "Duplicated label", 400)
+        return Utility.ERROR(req.raw.url, "Duplicated label", 400);
       }
 
-      console.log('typeof lat', typeof lat, typeof lat === "number");
-
+      console.log("typeof lat", typeof lat, typeof lat === "number");
 
       if (typeof lat !== "number" || typeof lng !== "number") {
-        return Utility.ERROR(req.raw.url, "lat, lng aren't number(double)", 400)
+        return Utility.ERROR(
+          req.raw.url,
+          "lat, lng aren't number(double)",
+          400
+        );
+      }
+
+      if (thumbnail !== undefined) {
+        const uuid = Utility.UUID(true);
+        const base64Data = thumbnail.replace(/^data:image\/jpeg;base64,/, "");
+        await imageCol.insertOne({
+          id: uuid,
+          image: base64Data,
+          type: "thumbnail",
+        });
+        thumbnail_id = uuid;
       }
 
       // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
@@ -83,20 +109,21 @@ module.exports = {
         youtube_uploadedAt: youtube_uploadedAt ?? "", // 유튜브 업로드일자
         youtube_link: youtube_link ?? "", // 유튜브 링크
         baemin_link: baemin_link ?? "", // 배민링크
-        thumbnail: thumbnail ?? "", // 썸네일 이미지 Id
+        thumbnail: thumbnail_id ?? "", // 썸네일 이미지 Id
       };
 
-      jangsinCol.insertOne(newRestaurant);
+      restaurantCol.insertOne(newRestaurant);
 
       return {
         status: 200,
         message: `${new Date().toLocaleString()} [${label}] update complete`,
+        data: {},
       };
     },
   },
 
-  "POST /update": {
-    // middlewares: ["auth"],
+  "POST /patch": {
+    middlewares: ["auth"],
     async handler(req, res) {
       const {
         id,
@@ -122,13 +149,14 @@ module.exports = {
         thumbnail,
       } = req.body;
 
-      const jangsinCol = await MongoDB.getCollection("restaurant");
-      const getDataById = await jangsinCol.findOne({ id: id });
-
+      const restaurantCol = await MongoDB.getCollection("restaurant");
+      const imageCol = await MongoDB.getCollection("image");
+      const getDataById = await restaurantCol.findOne({ id: id });
+      let patch_thumbnail_id = "";
 
       // TODO : 일치하는 id가 없으면 에러 처리
       if (getDataById === null) {
-        return Utility.ERROR(req.raw.url, "required parameter is empty", 400)
+        return Utility.ERROR(req.raw.url, "required parameter is empty", 400);
       }
 
       // TODO : 입력받은 모든 parameter의 typeof를 확인
@@ -154,8 +182,43 @@ module.exports = {
         // typeof getDataById.baemin_link != typeof baemin_link ||
         // typeof getDataById.thumbnail != typeof thumbnail
       ) {
+        return Utility.ERROR(req.raw.url, "required parameter is empty", 403);
+      }
 
-        return Utility.ERROR(req.raw.url, 'required parameter is empty', 403)
+      // TODO : 기존에 저장된 이미지가 없고, 이미지가 없을 떄
+      if (thumbnail === "" && getDataById.thumbnail === "") {
+        patch_thumbnail_id = "";
+      }
+
+      // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 없을 때
+      if (thumbnail === "" && getDataById.thumbnail !== "") {
+        patch_thumbnail_id = getDataById.thumbnail;
+      }
+
+      // TODO : 기존에 저장된 이미지가 없고, 새로운 이미지가 있을 때
+      if (thumbnail !== "" && getDataById.thumbnail === "") {
+        const uuid = Utility.UUID(true);
+        const base64Data = thumbnail.replace(/^data:image\/jpeg;base64,/, "");
+        await imageCol.insertOne({
+          id: uuid,
+          image: base64Data,
+          type: "thumbnail",
+        });
+        patch_thumbnail_id = uuid;
+      }
+
+      // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 있을 때
+      if (thumbnail !== "" && getDataById.thumbnail !== "") {
+        await imageCol.deleteOne({ id: getDataById.thumbnail });
+
+        const uuid = Utility.UUID(true);
+        const base64Data = thumbnail.replace(/^data:image\/jpeg;base64,/, "");
+        await imageCol.insertOne({
+          id: uuid,
+          image: base64Data,
+          type: "thumbnail",
+        });
+        patch_thumbnail_id = uuid;
       }
 
       // TODO : update시 기존 데이터를 유지하고 변경된 데이터만 update
@@ -164,31 +227,35 @@ module.exports = {
         contact: contact ?? getDataById.contact,
         info: info ?? getDataById.info,
         description: description ?? getDataById.description,
-        representative_menu: representative_menu ?? getDataById.representative_menu,
+        representative_menu:
+          representative_menu ?? getDataById.representative_menu,
         lat: lat ?? getDataById.lat,
         lng: lng ?? getDataById.lng,
         address_sido: address_sido ?? getDataById.address_sido,
         address_sigungu: address_sigungu ?? getDataById.address_sigungu,
-        address_eupmyeondong: address_eupmyeondong ?? getDataById.address_eupmyeondong,
+        address_eupmyeondong:
+          address_eupmyeondong ?? getDataById.address_eupmyeondong,
         address_detail: address_detail ?? getDataById.address_detail,
         address_street: address_street ?? getDataById.address_street,
         closed_days: closed_days ?? getDataById.closed_days,
         opertaion_time: opertaion_time ?? getDataById.opertaion_time,
         sns_link: sns_link ?? getDataById.sns_link,
         naver_map_link: naver_map_link ?? getDataById.naver_map_link,
-        youtube_uploadedAt: youtube_uploadedAt ?? getDataById.youtube_uploadedAt,
+        youtube_uploadedAt:
+          youtube_uploadedAt ?? getDataById.youtube_uploadedAt,
         youtube_link: youtube_link ?? getDataById.youtube_link,
         baemin_link: baemin_link ?? getDataById.baemin_link,
-        thumbnail: thumbnail ?? getDataById.thumbnail
-      }
+        thumbnail: patch_thumbnail_id,
+      };
 
-      jangsinCol.updateOne({ id: id }, { $set: updateRestaurant });
+      restaurantCol.updateOne({ id: id }, { $set: updateRestaurant });
 
       return {
         status: 200,
         message: `${new Date().toLocaleString()} [${label}] update complete`,
-      }
-    }
+        data: {},
+      };
+    },
   },
 
   "GET /get": {
@@ -215,7 +282,11 @@ module.exports = {
       const startIndex = (selectedPage - 1) * limit;
       // TODO : sido가 입력되었으면 sido로 쿼리
       if (sido !== undefined && sigungu === undefined) {
-        const queryData = await jangsinCol.find({ address_sido: sido }).skip(startIndex).limit(limit).toArray();
+        const queryData = await jangsinCol
+          .find({ address_sido: sido })
+          .skip(startIndex)
+          .limit(limit)
+          .toArray();
         const queryCount = await jangsinCol.count({ address_sido: sido });
         const totalQueryPage = Math.ceil(queryCount / limit);
 
@@ -226,14 +297,21 @@ module.exports = {
             total_page: totalQueryPage,
             selected_page: selectedPage,
             pagination_data: queryData,
-          }
+          },
         };
       }
 
       // TODO : sido가 입력되고, sigungu도 입력되면 sido, sigungu로 쿼리
       if (sido !== undefined && sigungu !== undefined) {
-        const queryData = await jangsinCol.find({ address_sido: sido, address_sigungu: sigungu }).skip(startIndex).limit(limit).toArray();
-        const queryCount = await jangsinCol.count({ address_sido: sido, address_sigungu: sigungu });
+        const queryData = await jangsinCol
+          .find({ address_sido: sido, address_sigungu: sigungu })
+          .skip(startIndex)
+          .limit(limit)
+          .toArray();
+        const queryCount = await jangsinCol.count({
+          address_sido: sido,
+          address_sigungu: sigungu,
+        });
         const totalQueryPage = Math.ceil(queryCount / limit);
         return {
           status: 200,
@@ -242,15 +320,20 @@ module.exports = {
             total_page: totalQueryPage,
             selected_page: selectedPage,
             pagination_data: queryData,
-          }
+          },
         };
       }
 
       const totalDataCount = await jangsinCol.count();
       const totalPage = Math.ceil(totalDataCount / limit);
 
-      if (selectedPage > totalPage) return Utility.ERROR(req.raw.url, "page is over", 400)
-      const getPagination = await jangsinCol.find().skip(startIndex).limit(limit).toArray();
+      if (selectedPage > totalPage)
+        return Utility.ERROR(req.raw.url, "page is over", 400);
+      const getPagination = await jangsinCol
+        .find()
+        .skip(startIndex)
+        .limit(limit)
+        .toArray();
 
       return {
         status: 200,
@@ -261,7 +344,7 @@ module.exports = {
           pagination_data: getPagination,
         },
       };
-    }
+    },
   },
 
   // TODO : 시/도로 쿼리
