@@ -3,6 +3,7 @@ const Fs = require("fs");
 const MongoDB = require("../mongodb");
 const Utility = require("../utility");
 const { get } = require("http");
+const { unescape } = require("querystring");
 
 module.exports = {
   "POST /create": {
@@ -291,19 +292,25 @@ module.exports = {
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const totalCount = await restaurantCol.count();
 
+
+      console.log('sido', typeof sido, sido === null, sido === undefined, sido === "");
+      console.log('sigungu', typeof sigungu, sigungu === null, sigungu === undefined, sigungu === "");
+
       if (totalCount === 0) {
         console.log(totalCount);
         return Utility.ERROR(req.raw.url, "restaurantCol is empty", 400);
       }
 
       const startIndex = (selectedPage - 1) * limit;
-      // TODO : sido가 입력되었으면 sido로 쿼리
+      // TODO : sido만 입력되었으면 sido로 쿼리
       if (sido !== undefined && sigungu === undefined) {
         const queryData = await restaurantCol
           .find({ address_sido: sido })
           .skip(startIndex)
           .limit(limit)
           .toArray();
+
+        console.log('sido queryData', queryData);
         const queryCount = await restaurantCol.count({ address_sido: sido });
         const totalQueryPage = Math.ceil(queryCount / limit);
 
@@ -363,17 +370,6 @@ module.exports = {
       };
     },
   },
-
-  // TODO : 시/도로 쿼리
-  // "GET /country/:id": {
-  //   async handler(req, res) {
-  //     const { id } = req.query;
-  //     console.log(id);
-  //     return {
-  //       data: id
-  //     };
-  //   }
-  // },
 
   "GET /latlng": {
     middlewares: ["app"],
