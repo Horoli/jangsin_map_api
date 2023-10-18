@@ -60,7 +60,7 @@ module.exports = {
       const imageCol = await MongoDB.getCollection("image");
 
       const getDataByLabel = await restaurantCol.findOne({ label: label });
-      console.log("getDataByLabel", getDataByLabel);
+      // console.log("getDataByLabel", getDataByLabel);
       // TODO : 가게명이 중복되면 에러 처리
       if (getDataByLabel != null) {
         return Utility.ERROR(req.raw.url, "Duplicated label", 400);
@@ -76,8 +76,11 @@ module.exports = {
         );
       }
 
-      console.log("add_thumbnail", add_thumbnail);
-      if (add_thumbnail !== undefined) {
+      // console.log("add_thumbnail", add_thumbnail);
+      // console.log(add_thumbnail !== undefined);
+      // console.log(add_thumbnail !== "");
+      if (add_thumbnail !== undefined || add_thumbnail !== "") {
+        // if (add_thumbnail !== "") {
         const uuid = Utility.UUID(true);
         const base64Data = add_thumbnail.replace(
           /^data:image\/jpeg;base64,/,
@@ -91,6 +94,8 @@ module.exports = {
         });
         thumbnail = uuid;
       }
+
+      console.log('thumbnail', thumbnail);
 
       // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
       const newRestaurant = {
