@@ -271,7 +271,7 @@ module.exports = {
   },
 
   "GET /get": {
-    middlewares: ["app"],
+    // middlewares: ["app"],
     async handler(req, res) {
       const jangsinCol = await MongoDB.getCollection("restaurant");
       const getData = await jangsinCol.find().toArray();
