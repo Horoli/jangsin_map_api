@@ -5,6 +5,9 @@ const Utility = require("../utility");
 module.exports = async (req, rep) => {
   const { client_key } = req.headers;
 
+
+  console.log(req.headers);
+
   console.log('client_key', client_key);
   if (client_key === undefined) {
     return Utility.ERROR("client auth", "client_key is empty", 403);
