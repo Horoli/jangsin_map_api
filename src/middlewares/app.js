@@ -3,13 +3,13 @@ const Bcrypt = require("bcrypt");
 const Utility = require("../utility");
 
 module.exports = async (req, rep) => {
-  const { client_key } = req.headers;
+  const { clientkey } = req.headers;
 
 
   console.log(req.headers);
 
-  console.log('client_key', client_key);
-  if (client_key === undefined) {
+  console.log('clientkey', clientkey);
+  if (clientkey === undefined) {
     return Utility.ERROR("client auth", "client_key is empty", 403);
   }
 
@@ -28,7 +28,7 @@ module.exports = async (req, rep) => {
 
   const getInfo = await appInfoCol.findOne({ label: "jangsin" });
 
-  const isApp = await Bcrypt.compare(client_key, getInfo.info);
+  const isApp = await Bcrypt.compare(clientkey, getInfo.info);
 
   // console.log(isApp);
 
