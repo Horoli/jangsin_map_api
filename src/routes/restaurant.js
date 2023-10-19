@@ -288,7 +288,7 @@ module.exports = {
   },
 
   "GET /pagination/:page:limit:sido:sigungu": {
-    middlewares: ["app"],
+    // middlewares: ["app"],
     async handler(req, res) {
       const selectedPage = parseInt(req.query.page);
       const limit = parseInt(req.query.limit);
