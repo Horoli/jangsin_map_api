@@ -4,7 +4,7 @@ const Bcrypt = require("bcrypt");
 module.exports = async (req, rep) => {
   const { app_info } = req.headers;
 
-  console.log(app_info);
+  console.log('app_info', app_info);
   const appInfoCol = await MongoDB.getCollection("appInfo");
 
   const getAppInfo = await appInfoCol.findOne({ label: "jangsin" });
