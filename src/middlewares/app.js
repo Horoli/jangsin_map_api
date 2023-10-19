@@ -6,9 +6,9 @@ module.exports = async (req, rep) => {
   const client_key = req.headers["client-key"];
   // console.log(req.headers);
 
-  console.log('clientkey', client_key);
+  console.log('client-key', client_key);
   if (client_key === undefined) {
-    return Utility.ERROR("client auth", "client_key is empty", 403);
+    return Utility.ERROR("client auth", "client-key is empty", 403);
   }
 
   const appInfoCol = await MongoDB.getCollection("appInfo");
