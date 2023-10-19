@@ -1,10 +1,15 @@
 const MongoDB = require("../mongodb");
 const Bcrypt = require("bcrypt");
+const Utility = require("../utility");
 
 module.exports = async (req, rep) => {
   const { client_key } = req.headers;
 
-  // console.log('client_key', client_key);
+  console.log('client_key', client_key);
+  if (client_key === undefined) {
+    return Utility.ERROR("client auth", "client_key is empty", 403);
+  }
+
   const appInfoCol = await MongoDB.getCollection("appInfo");
   const getAppInfo = await appInfoCol.findOne({ label: "jangsin" });
   // console.log('getAppInfo', getAppInfo);
@@ -25,8 +30,7 @@ module.exports = async (req, rep) => {
   // console.log(isApp);
 
   if (!isApp) {
-    const error = new Error("Error : invalid client");
-    error.status = 403;
-    return error;
+
+    return Utility.ERROR("client auth", "invalid client", 403);
   }
 };
