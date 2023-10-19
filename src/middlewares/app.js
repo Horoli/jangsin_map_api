@@ -2,13 +2,12 @@ const MongoDB = require("../mongodb");
 const Bcrypt = require("bcrypt");
 
 module.exports = async (req, rep) => {
-  const { app_info } = req.headers;
+  const { client_key } = req.headers;
 
-  console.log('app_info', app_info);
+  // console.log('client_key', client_key);
   const appInfoCol = await MongoDB.getCollection("appInfo");
-
   const getAppInfo = await appInfoCol.findOne({ label: "jangsin" });
-  console.log(getAppInfo);
+  // console.log('getAppInfo', getAppInfo);
 
   // TODO : must delete
   if (getAppInfo === null) {
@@ -21,7 +20,9 @@ module.exports = async (req, rep) => {
 
   const getInfo = await appInfoCol.findOne({ label: "jangsin" });
 
-  const isApp = await Bcrypt.compare(app_info, getInfo.info);
+  const isApp = await Bcrypt.compare(client_key, getInfo.info);
+
+  // console.log(isApp);
 
   if (!isApp) {
     const error = new Error("Error : invalid client");
