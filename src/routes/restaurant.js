@@ -11,23 +11,24 @@ module.exports = {
     async handler(req, res) {
       const {
         id,
-        label,
-        contact,
-        info,
-        description,
-        representative_menu,
-        lat,
-        lng,
-        address_sido,
-        address_sigungu,
-        address_eupmyeondong,
-        address_detail,
-        address_street,
-        closed_days,
-        opertaion_time,
-        sns_link,
-        naver_map_link,
+        source, // 가게 출처(장사의 신 유튜브, 타 방송, 장쉼카페 회원 가게)
+        label, // 가게명
+        contact, // 연락처
+        info, // 정보
+        description, // 메모
+        representative_menu, // 대표메뉴
+        lat, // 위도
+        lng, // 경도
+        address_sido, // 주소 - 시도
+        address_sigungu, // 주소 - 시군구
+        address_eupmyeondong, // 주소 - 읍면동
+        address_detail, // 주소 - 세부
+        address_street, // 도로명 주소
+        closed_days, // 휴무일
+        opertaion_time, // 영업시간
         youtube_uploadedAt,
+        sns_link, //
+        naver_map_link,
         youtube_link,
         baemin_link,
       } = req.body;
@@ -95,11 +96,12 @@ module.exports = {
         thumbnail = uuid;
       }
 
-      console.log('thumbnail', thumbnail);
+      console.log("thumbnail", thumbnail);
 
       // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
       const newRestaurant = {
         id: Utility.UUID(),
+        source: source ?? "",
         label: label, // 가게명
         contact: contact, // 연락처
         representative_menu: representative_menu ?? "", // 대표메뉴
@@ -120,6 +122,8 @@ module.exports = {
         youtube_link: youtube_link ?? "", // 유튜브 링크
         baemin_link: baemin_link ?? "", // 배민링크
         thumbnail: thumbnail ?? "", // 썸네일 이미지 Id
+        createdAt: new Date().getTime(),
+        updatedAt: new Date().getTime(),
       };
 
       restaurantCol.insertOne(newRestaurant);
@@ -137,6 +141,7 @@ module.exports = {
     async handler(req, res) {
       const {
         id,
+        source,
         label,
         contact,
         info,
@@ -240,6 +245,7 @@ module.exports = {
 
       // TODO : update시 기존 데이터를 유지하고 변경된 데이터만 update
       const updateRestaurant = {
+        source: source ?? getDataById.source,
         label: label ?? getDataById.label,
         contact: contact ?? getDataById.contact,
         info: info ?? getDataById.info,
@@ -263,6 +269,8 @@ module.exports = {
         youtube_link: youtube_link ?? getDataById.youtube_link,
         baemin_link: baemin_link ?? getDataById.baemin_link,
         thumbnail: thumbnail ?? getDataById.thumbnail,
+        createdAt: getDataById.createdAt,
+        updatedAt: new Date().getTime(),
       };
 
       restaurantCol.updateOne({ id: id }, { $set: updateRestaurant });
@@ -297,9 +305,20 @@ module.exports = {
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const totalCount = await restaurantCol.count();
 
-
-      console.log('sido', typeof sido, sido === null, sido === undefined, sido === "");
-      console.log('sigungu', typeof sigungu, sigungu === null, sigungu === undefined, sigungu === "");
+      console.log(
+        "sido",
+        typeof sido,
+        sido === null,
+        sido === undefined,
+        sido === ""
+      );
+      console.log(
+        "sigungu",
+        typeof sigungu,
+        sigungu === null,
+        sigungu === undefined,
+        sigungu === ""
+      );
 
       if (totalCount === 0) {
         console.log(totalCount);
@@ -315,7 +334,7 @@ module.exports = {
           .limit(limit)
           .toArray();
 
-        console.log('sido queryData', queryData);
+        console.log("sido queryData", queryData);
         const queryCount = await restaurantCol.count({ address_sido: sido });
         const totalQueryPage = Math.ceil(queryCount / limit);
 
