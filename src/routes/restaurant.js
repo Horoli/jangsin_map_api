@@ -365,6 +365,7 @@ module.exports = {
           statusCode: 200,
           message: `sido + sigungu || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
           data: {
+            dataCount: queryCount,
             total_page: totalQueryPage,
             selected_page: selectedPage,
             pagination_data: queryData,
@@ -387,6 +388,7 @@ module.exports = {
         statusCode: 200,
         message: `total_page : ${totalPage} || pagination : ${selectedPage}`,
         data: {
+          dataCount: totalDataCount,
           total_page: totalPage,
           selected_page: selectedPage,
           pagination_data: getPagination,
