@@ -342,6 +342,7 @@ module.exports = {
           statusCode: 200,
           message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
           data: {
+            dataCount: queryCount,
             total_page: totalQueryPage,
             selected_page: selectedPage,
             pagination_data: queryData,
