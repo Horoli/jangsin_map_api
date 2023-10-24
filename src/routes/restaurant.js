@@ -22,7 +22,6 @@ module.exports = {
         address_sigungu, // 주소 - 시군구
         address_eupmyeondong, // 주소 - 읍면동
         address_detail, // 주소 - 세부
-        // address_street, // 도로명 주소
         closed_days, // 휴무일
         operation_time, // 영업시간
         youtube_uploadedAt,
@@ -33,7 +32,6 @@ module.exports = {
       } = req.body;
 
       let { thumbnail, add_thumbnail } = req.body;
-
 
       // TODO : id가 입력되었으면 에러처리
       if (id !== "") {
@@ -62,17 +60,16 @@ module.exports = {
 
       try {
         const response = await Axios.get(geocodeUrl, {
-          headers: Utility.NAVER_CLIENT_HEADER
+          headers: Utility.NAVER_CLIENT_HEADER,
         });
 
-        if (response.data.status === 'OK') {
+        if (response.data.status === "OK") {
           const location = response.data.addresses[0];
           // 네이버 Maps Geocoding API로 받은 데이터를 활용합니다.
           const naverGetLat = Number(location.y);
           const naverGetLng = Number(location.x);
           // 도로명 주소는 address_detail을 뒤에 추가해 줌
           const naverGetStreetAddress = `${location.roadAddress} ${address_detail}`;
-
 
           const restaurantCol = await MongoDB.getCollection("restaurant");
           const imageCol = await MongoDB.getCollection("image");
@@ -137,7 +134,11 @@ module.exports = {
             data: {},
           };
         } else {
-          return Utility.EEROR(req.raw.url, `geocoding failed :  + ${response.data.status}`, 400);
+          return Utility.EEROR(
+            req.raw.url,
+            `geocoding failed :  + ${response.data.status}`,
+            400
+          );
         }
       } catch (error) {
         return Utility.ERROR(req.raw.url, `geocoding error : ${error}`, 400);
@@ -174,7 +175,6 @@ module.exports = {
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const imageCol = await MongoDB.getCollection("image");
       const getDataById = await restaurantCol.findOne({ id: id });
-
 
       // TODO : 일치하는 id가 없으면 에러 처리
       if (getDataById === null) {
@@ -213,13 +213,12 @@ module.exports = {
       // Naver Maps Geocoding API URL을 설정합니다.
       const geocodeUrl = `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${address}`;
 
-
       try {
         const response = await Axios.get(geocodeUrl, {
-          headers: Utility.NAVER_CLIENT_HEADER
+          headers: Utility.NAVER_CLIENT_HEADER,
         });
 
-        if (response.data.status === 'OK') {
+        if (response.data.status === "OK") {
           const location = response.data.addresses[0];
           const naverGetLat = Number(location.y);
           const naverGetLng = Number(location.x);
@@ -307,7 +306,11 @@ module.exports = {
             data: {},
           };
         } else {
-          return Utility.EEROR(req.raw.url, `geocoding failed :  + ${response.data.status}`, 400);
+          return Utility.EEROR(
+            req.raw.url,
+            `geocoding failed :  + ${response.data.status}`,
+            400
+          );
         }
       } catch {
         return Utility.ERROR(req.raw.url, `geocoding error : ${error}`, 400);
@@ -435,12 +438,44 @@ module.exports = {
     },
   },
 
+  "DELETE /delete": {
+    middlewares: ["app"],
+    async handler(req, res) {
+      const { id } = req.body;
+
+      console.log("delete", id);
+      if (id === null || id === undefined) {
+        return Utility.ERROR(req.raw.url, "id is empty", 400);
+      }
+      const restaurantCol = await MongoDB.getCollection("restaurant");
+      const imageCol = await MongoDB.getCollection("image");
+
+      const target = await restaurantCol.findOne({ id: id });
+      if (target === null || target === undefined) {
+        return Utility.ERROR(req.raw.url, "target is not exist", 400);
+      }
+
+      const thumbnailId = target.thumbnail;
+
+      console.log(target);
+
+      await imageCol.deleteOne({ id: thumbnailId });
+      await restaurantCol.deleteOne({ id: id });
+
+      return {
+        statusCode: 200,
+        message: `${new Date().toLocaleString()} [${id}] delete complete`,
+        data: {},
+      };
+    },
+  },
+
   "GET /latlng": {
     middlewares: ["app"],
     async handler(req, res) {
-      const jangsinCol = await MongoDB.getCollection("restaurant");
+      const restaurantCol = await MongoDB.getCollection("restaurant");
       // TODO : mongodb project을 사용해서 lat,lng데이터만 쿼리
-      const getData = await jangsinCol
+      const getData = await restaurantCol
         .find()
         .project({ _id: 0, lat: 1, lng: 1 })
         .toArray();
@@ -452,5 +487,4 @@ module.exports = {
       };
     },
   },
-
 };
