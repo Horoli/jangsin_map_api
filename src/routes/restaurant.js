@@ -67,9 +67,11 @@ module.exports = {
 
         if (response.data.status === 'OK') {
           const location = response.data.addresses[0];
-          const getLat = Number(location.y);
-          const getLng = Number(location.x);
-          const getStreetAddress = `${location.roadAddress} ${address_detail}`;
+          // 네이버 Maps Geocoding API로 받은 데이터를 활용합니다.
+          const naverGetLat = Number(location.y);
+          const naverGetLng = Number(location.x);
+          // 도로명 주소는 address_detail을 뒤에 추가해 줌
+          const naverGetStreetAddress = `${location.roadAddress} ${address_detail}`;
 
 
           const restaurantCol = await MongoDB.getCollection("restaurant");
@@ -108,13 +110,13 @@ module.exports = {
             representative_menu: representative_menu ?? "", // 대표메뉴
             info: info ?? "", // 기타정보
             description: description ?? "", // 메모
-            lat: getLat, // 위도
-            lng: getLng, // 경도
+            lat: naverGetLat, // 위도
+            lng: naverGetLng, // 경도
             address_sido: address_sido ?? "",
             address_sigungu: address_sigungu ?? "",
             address_eupmyeondong: address_eupmyeondong ?? "",
             address_detail: address_detail ?? "",
-            address_street: getStreetAddress,
+            address_street: naverGetStreetAddress,
             closed_days: closed_days ?? "", // 휴무일
             operation_time: operation_time ?? "", // 영업시간
             sns_link: sns_link ?? "", // sns 링크
@@ -219,9 +221,10 @@ module.exports = {
 
         if (response.data.status === 'OK') {
           const location = response.data.addresses[0];
-          const getLat = Number(location.y);
-          const getLng = Number(location.x);
-          const getStreetAddress = `${location.roadAddress} ${address_detail}`;
+          const naverGetLat = Number(location.y);
+          const naverGetLng = Number(location.x);
+          // 도로명 주소는 address_detail을 뒤에 추가해 줌
+          const naverGetStreetAddress = `${location.roadAddress} ${address_detail}`;
           console.log(location);
 
           // TODO : 기존에 저장된 이미지가 없고, 이미지가 없을 떄
@@ -275,14 +278,14 @@ module.exports = {
             description: description ?? getDataById.description,
             representative_menu:
               representative_menu ?? getDataById.representative_menu,
-            lat: getLat,
-            lng: getLng,
+            lat: naverGetLat,
+            lng: naverGetLng,
             address_sido: address_sido ?? getDataById.address_sido,
             address_sigungu: address_sigungu ?? getDataById.address_sigungu,
             address_eupmyeondong:
               address_eupmyeondong ?? getDataById.address_eupmyeondong,
             address_detail: address_detail ?? getDataById.address_detail,
-            address_street: getStreetAddress ?? getDataById.address_street,
+            address_street: naverGetStreetAddress ?? getDataById.address_street,
             closed_days: closed_days ?? getDataById.closed_days,
             operation_time: operation_time ?? getDataById.operation_time,
             sns_link: sns_link ?? getDataById.sns_link,
@@ -324,30 +327,35 @@ module.exports = {
     },
   },
 
-  "GET /pagination/:page:limit:sido:sigungu": {
+  /* 
+  TODO : 
+    대표메뉴(representative_menu)로 필터링하는 쿼리 추가
+    가게출처(source)로 필터링하는 쿼리 추가
+  */
+  "GET /pagination/:page:limit:sido": {
     middlewares: ["app"],
     async handler(req, res) {
       const selectedPage = parseInt(req.query.page);
       const limit = parseInt(req.query.limit);
       const sido = req.query.sido;
-      const sigungu = req.query.sigungu;
+      // const sigungu = req.query.sigungu;
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const totalCount = await restaurantCol.count();
 
-      console.log(
-        "sido",
-        typeof sido,
-        sido === null,
-        sido === undefined,
-        sido === ""
-      );
-      console.log(
-        "sigungu",
-        typeof sigungu,
-        sigungu === null,
-        sigungu === undefined,
-        sigungu === ""
-      );
+      // console.log(
+      //   "sido",
+      //   typeof sido,
+      //   sido === null,
+      //   sido === undefined,
+      //   sido === ""
+      // );
+      // console.log(
+      //   "sigungu",
+      //   typeof sigungu,
+      //   sigungu === null,
+      //   sigungu === undefined,
+      //   sigungu === ""
+      // );
 
       if (totalCount === 0) {
         console.log(totalCount);
@@ -356,7 +364,7 @@ module.exports = {
 
       const startIndex = (selectedPage - 1) * limit;
       // TODO : sido만 입력되었으면 sido로 쿼리
-      if (sido !== undefined && sigungu === undefined) {
+      if (sido !== undefined) {
         const queryData = await restaurantCol
           .find({ address_sido: sido })
           .skip(startIndex)
