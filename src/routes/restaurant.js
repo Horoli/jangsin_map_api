@@ -8,7 +8,7 @@ const { unescape } = require("querystring");
 
 module.exports = {
   "POST /create": {
-    // middlewares: ["auth"],
+    middlewares: ["auth"],
     async handler(req, res) {
       const {
         id,
@@ -313,7 +313,7 @@ module.exports = {
   },
 
   "GET /get": {
-    // middlewares: ["app"],
+    middlewares: ["app"],
     async handler(req, res) {
       const jangsinCol = await MongoDB.getCollection("restaurant");
       const getData = await jangsinCol.find().toArray();
@@ -445,19 +445,4 @@ module.exports = {
     },
   },
 
-  "GET /test": {
-    async handler(req, res) {
-      try {
-        // const url = 'https://map.naver.com/p/search/%EB%B2%85%EB%B2%85/place/1652144509?c=15.00,0,0,0,dh&placePath=%3Fentry%253Dbmp';
-        const url = 'https://hankyung.com/';
-        const response = await Axios.get(url);
-        console.log(response.data);
-        return response.data;
-      } catch (error) {
-        console.error(`Error fetching data: ${error}`);
-      }
-
-
-    }
-  }
 };
