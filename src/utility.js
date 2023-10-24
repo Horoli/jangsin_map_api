@@ -12,6 +12,11 @@ class Utility {
     error.status = statusCode;
     return error;
   }
+
+  static NAVER_CLIENT_HEADER = {
+    'X-NCP-APIGW-API-KEY-ID': 'rey7y37ny0',
+    'X-NCP-APIGW-API-KEY': 'N4o8cTaxOdHOYAydx7MjpOxwVH3oVMOzkmCiAt8g',
+  }
 }
 
 module.exports = Utility;

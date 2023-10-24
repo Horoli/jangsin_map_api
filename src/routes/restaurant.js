@@ -2,6 +2,7 @@ const Path = require("path");
 const Fs = require("fs");
 const MongoDB = require("../mongodb");
 const Utility = require("../utility");
+const Axios = require("axios");
 const { get } = require("http");
 const { unescape } = require("querystring");
 
@@ -17,15 +18,13 @@ module.exports = {
         info, // 정보
         description, // 메모
         representative_menu, // 대표메뉴
-        lat, // 위도
-        lng, // 경도
         address_sido, // 주소 - 시도
         address_sigungu, // 주소 - 시군구
         address_eupmyeondong, // 주소 - 읍면동
         address_detail, // 주소 - 세부
-        address_street, // 도로명 주소
+        // address_street, // 도로명 주소
         closed_days, // 휴무일
-        opertaion_time, // 영업시간
+        operation_time, // 영업시간
         youtube_uploadedAt,
         sns_link, //
         naver_map_link,
@@ -35,12 +34,12 @@ module.exports = {
 
       let { thumbnail, add_thumbnail } = req.body;
 
+
       // TODO : id가 입력되었으면 에러처리
       if (id !== "") {
         return Utility.ERROR(req.raw.url, "remove input id", 400);
       }
 
-      // TODO : 필수 파라미터가 없으면 에러 처리
       if (
         label === undefined ||
         label === "" ||
@@ -49,90 +48,98 @@ module.exports = {
         address_sigungu === undefined ||
         address_sigungu === "" ||
         contact === undefined ||
-        contact === "" ||
-        lat === undefined ||
-        lat === 0 ||
-        lng === undefined ||
-        lng === 0
+        contact === ""
       ) {
         return Utility.ERROR(req.raw.url, "required parameter is empty", 400);
       }
-      const restaurantCol = await MongoDB.getCollection("restaurant");
-      const imageCol = await MongoDB.getCollection("image");
+      // 변환하려는 주소를 입력합니다.
+      const address = encodeURIComponent(
+        `${address_sido} ${address_sigungu} ${address_eupmyeondong} ${address_detail}`
+      );
 
-      const getDataByLabel = await restaurantCol.findOne({ label: label });
-      // console.log("getDataByLabel", getDataByLabel);
-      // TODO : 가게명이 중복되면 에러 처리
-      if (getDataByLabel != null) {
-        return Utility.ERROR(req.raw.url, "Duplicated label", 400);
-      }
+      // Naver Maps Geocoding API URL을 설정합니다.
+      const geocodeUrl = `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${address}`;
 
-      console.log("typeof lat", typeof lat, typeof lat === "number");
-
-      if (typeof lat !== "number" || typeof lng !== "number") {
-        return Utility.ERROR(
-          req.raw.url,
-          "lat, lng aren't number(double)",
-          400
-        );
-      }
-
-      // console.log("add_thumbnail", add_thumbnail);
-      // console.log(add_thumbnail !== undefined);
-      // console.log(add_thumbnail !== "");
-      if (add_thumbnail !== undefined || add_thumbnail !== "") {
-        // if (add_thumbnail !== "") {
-        const uuid = Utility.UUID(true);
-        const base64Data = add_thumbnail.replace(
-          /^data:image\/jpeg;base64,/,
-          ""
-        );
-        console.log(base64Data);
-        await imageCol.insertOne({
-          id: uuid,
-          image: base64Data,
-          type: "thumbnail",
+      try {
+        const response = await Axios.get(geocodeUrl, {
+          headers: Utility.NAVER_CLIENT_HEADER
         });
-        thumbnail = uuid;
+
+        if (response.data.status === 'OK') {
+          const location = response.data.addresses[0];
+          const getLat = Number(location.y);
+          const getLng = Number(location.x);
+          const getStreetAddress = `${location.roadAddress} ${address_detail}`;
+
+
+          const restaurantCol = await MongoDB.getCollection("restaurant");
+          const imageCol = await MongoDB.getCollection("image");
+
+          const getDataByLabel = await restaurantCol.findOne({ label: label });
+
+          // TODO : 가게명이 중복되면 에러 처리
+          if (getDataByLabel != null) {
+            return Utility.ERROR(req.raw.url, "Duplicated label", 400);
+          }
+
+          if (add_thumbnail !== undefined || add_thumbnail !== "") {
+            const uuid = Utility.UUID(true);
+            const base64Data = add_thumbnail.replace(
+              /^data:image\/jpeg;base64,/,
+              ""
+            );
+            console.log(base64Data);
+            await imageCol.insertOne({
+              id: uuid,
+              image: base64Data,
+              type: "thumbnail",
+            });
+            thumbnail = uuid;
+          }
+
+          console.log("thumbnail", thumbnail);
+
+          // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
+          const newRestaurant = {
+            id: Utility.UUID(),
+            source: source ?? "",
+            label: label, // 가게명
+            contact: contact, // 연락처
+            representative_menu: representative_menu ?? "", // 대표메뉴
+            info: info ?? "", // 기타정보
+            description: description ?? "", // 메모
+            lat: getLat, // 위도
+            lng: getLng, // 경도
+            address_sido: address_sido ?? "",
+            address_sigungu: address_sigungu ?? "",
+            address_eupmyeondong: address_eupmyeondong ?? "",
+            address_detail: address_detail ?? "",
+            address_street: getStreetAddress,
+            closed_days: closed_days ?? "", // 휴무일
+            operation_time: operation_time ?? "", // 영업시간
+            sns_link: sns_link ?? "", // sns 링크
+            naver_map_link: naver_map_link ?? "", // naverMap 링크
+            youtube_uploadedAt: youtube_uploadedAt ?? "", // 유튜브 업로드일자
+            youtube_link: youtube_link ?? "", // 유튜브 링크
+            baemin_link: baemin_link ?? "", // 배민링크
+            thumbnail: thumbnail ?? "", // 썸네일 이미지 Id
+            createdAt: new Date().getTime(),
+            updatedAt: new Date().getTime(),
+          };
+
+          await restaurantCol.insertOne(newRestaurant);
+
+          return {
+            statusCode: 200,
+            message: `${new Date().toLocaleString()} [${label}] update complete`,
+            data: {},
+          };
+        } else {
+          return Utility.EEROR(req.raw.url, `geocoding failed :  + ${response.data.status}`, 400);
+        }
+      } catch (error) {
+        return Utility.ERROR(req.raw.url, `geocoding error : ${error}`, 400);
       }
-
-      console.log("thumbnail", thumbnail);
-
-      // TODO : 생성할 때에는 id를 입력받지 않고, 자동 생성하여 부여
-      const newRestaurant = {
-        id: Utility.UUID(),
-        source: source ?? "",
-        label: label, // 가게명
-        contact: contact, // 연락처
-        representative_menu: representative_menu ?? "", // 대표메뉴
-        info: info ?? "", // 기타정보
-        description: description ?? "", // 메모
-        lat: lat, // 위도
-        lng: lng, // 경도
-        address_sido: address_sido ?? "",
-        address_sigungu: address_sigungu ?? "",
-        address_eupmyeondong: address_eupmyeondong ?? "",
-        address_detail: address_detail ?? "",
-        address_street: address_street ?? "",
-        closed_days: closed_days ?? "", // 휴무일
-        opertaion_time: opertaion_time ?? "", // 영업시간
-        sns_link: sns_link ?? "", // sns 링크
-        naver_map_link: naver_map_link ?? "", // naverMap 링크
-        youtube_uploadedAt: youtube_uploadedAt ?? "", // 유튜브 업로드일자
-        youtube_link: youtube_link ?? "", // 유튜브 링크
-        baemin_link: baemin_link ?? "", // 배민링크
-        thumbnail: thumbnail ?? "", // 썸네일 이미지 Id
-        createdAt: new Date().getTime(),
-        updatedAt: new Date().getTime(),
-      };
-
-      restaurantCol.insertOne(newRestaurant);
-
-      return {
-        statusCode: 200,
-        message: `${new Date().toLocaleString()} [${label}] update complete`,
-        data: {},
-      };
     },
   },
 
@@ -147,15 +154,12 @@ module.exports = {
         info,
         description,
         representative_menu,
-        lat,
-        lng,
         address_sido,
         address_sigungu,
         address_eupmyeondong,
         address_detail,
-        address_street,
         closed_days,
-        opertaion_time,
+        operation_time,
         sns_link,
         naver_map_link,
         youtube_uploadedAt,
@@ -168,7 +172,7 @@ module.exports = {
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const imageCol = await MongoDB.getCollection("image");
       const getDataById = await restaurantCol.findOne({ id: id });
-      // let patch_thumbnail_id = "";
+
 
       // TODO : 일치하는 id가 없으면 에러 처리
       if (getDataById === null) {
@@ -182,15 +186,13 @@ module.exports = {
         typeof getDataById.info != typeof info ||
         // typeof getDataById.description != typeof description ||
         // typeof getDataById.representative_menu != typeof representative_menu ||
-        typeof getDataById.lat != typeof lat ||
-        typeof getDataById.lng != typeof lng ||
         typeof getDataById.address_sido != typeof address_sido ||
         typeof getDataById.address_sigungu != typeof address_sigungu
         // typeof getDataById.address_eupmyeondong != typeof address_eupmyeondong ||
         // typeof getDataById.address_detail != typeof address_detail ||
         // typeof getDataById.address_street != typeof address_street ||
         // typeof getDataById.closed_days != typeof closed_days ||
-        // typeof getDataById.opertaion_time != typeof opertaion_time ||
+        // typeof getDataById.operation_time != typeof operation_time ||
         // typeof getDataById.sns_link != typeof sns_link ||
         // typeof getDataById.naver_map_link != typeof naver_map_link ||
         // typeof getDataById.youtube_uploadedAt != typeof youtube_uploadedAt ||
@@ -201,85 +203,112 @@ module.exports = {
         return Utility.ERROR(req.raw.url, "required parameter is empty", 403);
       }
 
-      // TODO : 기존에 저장된 이미지가 없고, 이미지가 없을 떄
-      if (add_thumbnail === "" && getDataById.thumbnail === "") {
-        thumbnail = "";
-      }
+      // 변환하려는 주소를 입력합니다.
+      const address = encodeURIComponent(
+        `${address_sido} ${address_sigungu} ${address_eupmyeondong} ${address_detail}`
+      );
 
-      // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 없을 때
-      if (add_thumbnail === "" && getDataById.thumbnail !== "") {
-        thumbnail = getDataById.thumbnail;
-      }
+      // Naver Maps Geocoding API URL을 설정합니다.
+      const geocodeUrl = `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${address}`;
 
-      // TODO : 기존에 저장된 이미지가 없고, 새로운 이미지가 있을 때
-      if (add_thumbnail !== "" && getDataById.thumbnail === "") {
-        const uuid = Utility.UUID(true);
-        const base64Data = add_thumbnail.replace(
-          /^data:image\/jpeg;base64,/,
-          ""
-        );
-        await imageCol.insertOne({
-          id: uuid,
-          image: base64Data,
-          type: "thumbnail",
+
+      try {
+        const response = await Axios.get(geocodeUrl, {
+          headers: Utility.NAVER_CLIENT_HEADER
         });
-        thumbnail = uuid;
+
+        if (response.data.status === 'OK') {
+          const location = response.data.addresses[0];
+          const getLat = Number(location.y);
+          const getLng = Number(location.x);
+          const getStreetAddress = `${location.roadAddress} ${address_detail}`;
+          console.log(location);
+
+          // TODO : 기존에 저장된 이미지가 없고, 이미지가 없을 떄
+          if (add_thumbnail === "" && getDataById.thumbnail === "") {
+            thumbnail = "";
+          }
+
+          // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 없을 때
+          if (add_thumbnail === "" && getDataById.thumbnail !== "") {
+            thumbnail = getDataById.thumbnail;
+          }
+
+          // TODO : 기존에 저장된 이미지가 없고, 새로운 이미지가 있을 때
+          if (add_thumbnail !== "" && getDataById.thumbnail === "") {
+            const uuid = Utility.UUID(true);
+            const base64Data = add_thumbnail.replace(
+              /^data:image\/jpeg;base64,/,
+              ""
+            );
+            await imageCol.insertOne({
+              id: uuid,
+              image: base64Data,
+              type: "thumbnail",
+            });
+            thumbnail = uuid;
+          }
+
+          // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 있을 때
+          if (add_thumbnail !== "" && getDataById.thumbnail !== "") {
+            await imageCol.deleteOne({ id: getDataById.thumbnail });
+
+            const uuid = Utility.UUID(true);
+            const base64Data = add_thumbnail.replace(
+              /^data:image\/jpeg;base64,/,
+              ""
+            );
+            await imageCol.insertOne({
+              id: uuid,
+              image: base64Data,
+              type: "thumbnail",
+            });
+            thumbnail = uuid;
+          }
+
+          // TODO : update시 기존 데이터를 유지하고 변경된 데이터만 update
+          const updateRestaurant = {
+            source: source ?? getDataById.source,
+            label: label ?? getDataById.label,
+            contact: contact ?? getDataById.contact,
+            info: info ?? getDataById.info,
+            description: description ?? getDataById.description,
+            representative_menu:
+              representative_menu ?? getDataById.representative_menu,
+            lat: getLat,
+            lng: getLng,
+            address_sido: address_sido ?? getDataById.address_sido,
+            address_sigungu: address_sigungu ?? getDataById.address_sigungu,
+            address_eupmyeondong:
+              address_eupmyeondong ?? getDataById.address_eupmyeondong,
+            address_detail: address_detail ?? getDataById.address_detail,
+            address_street: getStreetAddress ?? getDataById.address_street,
+            closed_days: closed_days ?? getDataById.closed_days,
+            operation_time: operation_time ?? getDataById.operation_time,
+            sns_link: sns_link ?? getDataById.sns_link,
+            naver_map_link: naver_map_link ?? getDataById.naver_map_link,
+            youtube_uploadedAt:
+              youtube_uploadedAt ?? getDataById.youtube_uploadedAt,
+            youtube_link: youtube_link ?? getDataById.youtube_link,
+            baemin_link: baemin_link ?? getDataById.baemin_link,
+            thumbnail: thumbnail ?? getDataById.thumbnail,
+            createdAt: getDataById.createdAt,
+            updatedAt: new Date().getTime(),
+          };
+
+          await restaurantCol.updateOne({ id: id }, { $set: updateRestaurant });
+
+          return {
+            statusCode: 200,
+            message: `${new Date().toLocaleString()} [${label}] update complete`,
+            data: {},
+          };
+        } else {
+          return Utility.EEROR(req.raw.url, `geocoding failed :  + ${response.data.status}`, 400);
+        }
+      } catch {
+        return Utility.ERROR(req.raw.url, `geocoding error : ${error}`, 400);
       }
-
-      // TODO : 기존에 저장된 이미지가 있고, 새로운 이미지가 있을 때
-      if (add_thumbnail !== "" && getDataById.thumbnail !== "") {
-        await imageCol.deleteOne({ id: getDataById.thumbnail });
-
-        const uuid = Utility.UUID(true);
-        const base64Data = add_thumbnail.replace(
-          /^data:image\/jpeg;base64,/,
-          ""
-        );
-        await imageCol.insertOne({
-          id: uuid,
-          image: base64Data,
-          type: "thumbnail",
-        });
-        thumbnail = uuid;
-      }
-
-      // TODO : update시 기존 데이터를 유지하고 변경된 데이터만 update
-      const updateRestaurant = {
-        source: source ?? getDataById.source,
-        label: label ?? getDataById.label,
-        contact: contact ?? getDataById.contact,
-        info: info ?? getDataById.info,
-        description: description ?? getDataById.description,
-        representative_menu:
-          representative_menu ?? getDataById.representative_menu,
-        lat: lat ?? getDataById.lat,
-        lng: lng ?? getDataById.lng,
-        address_sido: address_sido ?? getDataById.address_sido,
-        address_sigungu: address_sigungu ?? getDataById.address_sigungu,
-        address_eupmyeondong:
-          address_eupmyeondong ?? getDataById.address_eupmyeondong,
-        address_detail: address_detail ?? getDataById.address_detail,
-        address_street: address_street ?? getDataById.address_street,
-        closed_days: closed_days ?? getDataById.closed_days,
-        opertaion_time: opertaion_time ?? getDataById.opertaion_time,
-        sns_link: sns_link ?? getDataById.sns_link,
-        naver_map_link: naver_map_link ?? getDataById.naver_map_link,
-        youtube_uploadedAt:
-          youtube_uploadedAt ?? getDataById.youtube_uploadedAt,
-        youtube_link: youtube_link ?? getDataById.youtube_link,
-        baemin_link: baemin_link ?? getDataById.baemin_link,
-        thumbnail: thumbnail ?? getDataById.thumbnail,
-        createdAt: getDataById.createdAt,
-        updatedAt: new Date().getTime(),
-      };
-
-      restaurantCol.updateOne({ id: id }, { $set: updateRestaurant });
-
-      return {
-        statusCode: 200,
-        message: `${new Date().toLocaleString()} [${label}] update complete`,
-        data: {},
-      };
     },
   },
 
@@ -415,4 +444,20 @@ module.exports = {
       };
     },
   },
+
+  "GET /test": {
+    async handler(req, res) {
+      try {
+        // const url = 'https://map.naver.com/p/search/%EB%B2%85%EB%B2%85/place/1652144509?c=15.00,0,0,0,dh&placePath=%3Fentry%253Dbmp';
+        const url = 'https://hankyung.com/';
+        const response = await Axios.get(url);
+        console.log(response.data);
+        return response.data;
+      } catch (error) {
+        console.error(`Error fetching data: ${error}`);
+      }
+
+
+    }
+  }
 };
