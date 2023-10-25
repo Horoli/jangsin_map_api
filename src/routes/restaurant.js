@@ -5,8 +5,8 @@ const Utility = require("../utility");
 const Axios = require("axios");
 const { get } = require("http");
 const { unescape } = require("querystring");
-const puppeteer = require("puppeteer");
-const cheerio = require("cheerio");
+// const puppeteer = require("puppeteer");
+// const cheerio = require("cheerio");
 
 module.exports = {
   "POST /create": {
@@ -124,8 +124,8 @@ module.exports = {
             youtube_link: youtube_link ?? "", // 유튜브 링크
             baemin_link: baemin_link ?? "", // 배민링크
             thumbnail: thumbnail ?? "", // 썸네일 이미지 Id
-            createdAt: new Date().getTime(),
-            updatedAt: new Date().getTime(),
+            created_at: new Date().getTime(),
+            updated_at: new Date().getTime(),
           };
 
           await restaurantCol.insertOne(newRestaurant);
@@ -296,8 +296,8 @@ module.exports = {
             youtube_link: youtube_link ?? getDataById.youtube_link,
             baemin_link: baemin_link ?? getDataById.baemin_link,
             thumbnail: thumbnail ?? getDataById.thumbnail,
-            createdAt: getDataById.createdAt,
-            updatedAt: new Date().getTime(),
+            created_at: getDataById.createdAt,
+            updated_at: new Date().getTime(),
           };
 
           await restaurantCol.updateOne({ id: id }, { $set: updateRestaurant });
@@ -490,49 +490,49 @@ module.exports = {
     },
   },
 
-  "POST /test": {
-    async handler(req, res) {
-      const { url } = req.body;
-      console.log(url);
+  // "POST /test": {
+  //   async handler(req, res) {
+  //     const { url } = req.body;
+  //     console.log(url);
 
-      try {
-        async function getContents(url) {
-          const browser = await puppeteer.launch(
-            { headless: "new" }
-          );
-          const page = await browser.newPage();
-          await page.goto(url);
+  //     try {
+  //       async function getContents(url) {
+  //         const browser = await puppeteer.launch(
+  //           { headless: "new" }
+  //         );
+  //         const page = await browser.newPage();
+  //         await page.goto(url);
 
-          // 웹사이트가 모든 동적 콘텐츠를 로드할 때까지 기다립니다.
-          await page.waitForSelector('div.sc-48msce.bcmMFw');
+  //         // 웹사이트가 모든 동적 콘텐츠를 로드할 때까지 기다립니다.
+  //         await page.waitForSelector('div.sc-48msce.bcmMFw');
 
-          // 웹사이트에서 동적 콘텐츠를 가져옵니다.
-          const content = await page.evaluate(() => {
-            return document.querySelector('div.sc-48msce.bcmMFw').innerHTML;
-          });
+  //         // 웹사이트에서 동적 콘텐츠를 가져옵니다.
+  //         const content = await page.evaluate(() => {
+  //           return document.querySelector('div.sc-48msce.bcmMFw').innerHTML;
+  //         });
 
-          await browser.close();
-          return content;
-        }
+  //         await browser.close();
+  //         return content;
+  //       }
 
-        const asd = await getContents(url)
-        const $ = cheerio.load(asd);
+  //       const asd = await getContents(url)
+  //       const $ = cheerio.load(asd);
 
-        const src = $('iframe#searchIframe').attr('src');
-        console.log('src', src);
+  //       const src = $('iframe#searchIframe').attr('src');
+  //       console.log('src', src);
 
-        const zxc = await Axios.get(src)
-        console.log(
+  //       const zxc = await Axios.get(src)
+  //       console.log(
 
-          zxc.data
-        )
+  //         zxc.data
+  //       )
 
-        return {};
+  //       return {};
 
-      } catch {
-        return {};
-      }
+  //     } catch {
+  //       return {};
+  //     }
 
-    }
-  }
+  //   }
+  // }
 };
