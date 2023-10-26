@@ -3,10 +3,6 @@ const Fs = require("fs");
 const MongoDB = require("../mongodb");
 const Utility = require("../utility");
 const Axios = require("axios");
-const { get } = require("http");
-const { unescape } = require("querystring");
-// const puppeteer = require("puppeteer");
-// const cheerio = require("cheerio");
 const sharp = require("sharp");
 
 module.exports = {
@@ -153,50 +149,189 @@ module.exports = {
     async handler(req, res) {
       const { csv } = req.body;
 
+      let duplicatedDatas = [];
+
+      console.log("step 1");
       if (csv === null || csv === undefined) {
-        return Utility.ERROR(req.raw.url, `csv is null : ${error}`, 403);
+        return Utility.ERROR(req.raw.url, `csv is null`, 403);
       }
+
+      const restaurantCol = await MongoDB.getCollection("restaurant");
+      const imageCol = await MongoDB.getCollection("image");
+
       // csv로 입력받은 데이터를 저장할 array
-      let newRestaurants = [];
+      const restaurantObjectArrays = await createData();
+      console.log("step 1 : createData");
+      const extractedData = await dropDuplicatedData(restaurantObjectArrays);
+      console.log("step 2 : dropDuplicatedData");
+      const finalRestaurant = await getThumbnailByUrl([...extractedData]);
+      console.log("step 3 : getThumbnailByUrl");
+      const updateNewRestaurants = await getGeocodingData(finalRestaurant);
+      console.log("step 4 : getGeocodingData", updateNewRestaurants);
 
-      // TODO : csv header 추출
-      // header를 제거하기 위해 copyCsv를 생성
+      console.log(updateNewRestaurants);
 
-      const columnHeader = csv[0];
-      const copyCsv = csv.splice(1);
-      await createData();
-      await getAwaitData([...newRestaurants]);
+      if (updateNewRestaurants.length === 0) {
+        return Utility.ERROR(
+          req.raw.url,
+          `upload failed : 업로드할 데이터가 없습니다.`,
+          403
+        );
+      }
 
       async function createData() {
+        // TODO : csv header 추출
+        const columnHeader = csv[0];
+        // header를 제거하기 위해 copyCsv를 생성
+        const copyCsv = csv.splice(1);
+        let restaurantObjectArrays = [];
+
         for (const csvIndex in copyCsv) {
-          let newMap = {};
-          for (let columnHeaderIndex = 0; columnHeaderIndex < columnHeader.length; columnHeaderIndex++) {
-            newMap[columnHeader[columnHeaderIndex]] = copyCsv[csvIndex][columnHeaderIndex];
+          let individualRestaurantObject = {};
+          for (
+            let columnHeaderIndex = 0;
+            columnHeaderIndex < columnHeader.length;
+            columnHeaderIndex++
+          ) {
+            individualRestaurantObject[columnHeader[columnHeaderIndex]] =
+              copyCsv[csvIndex][columnHeaderIndex];
           }
-          newRestaurants.push(newMap);
+          restaurantObjectArrays.push(individualRestaurantObject);
         }
+
+        return restaurantObjectArrays;
       }
 
-      async function getAwaitData(input) {
-        console.log('input', input);
-        await Promise.all(input.map(async (restaurant) => {
-          const getImage = await Axios.get(restaurant.thumbnail, { responseType: 'stream' });
-          const imageType = 'jpeg'
-          const sharpTransformer = sharp().resize(200, 200).toFormat(imageType);
-          const sharpImage = await getImage.data.pipe(sharpTransformer).toBuffer().catch(err => err);
-          const base64Image = sharpImage.toString('base64')
+      // TODO : 입력받은 csv에 포함된 중복은 걸러내지 못하는 상태
+      async function dropDuplicatedData(inputRestaurants) {
+        let extractedData = inputRestaurants.filter(
+          (value) => value.label !== undefined
+        );
 
-        }));
+        const getDuplicatedDatas = await Promise.all(
+          await restaurantCol
+            .aggregate([
+              { $group: { _id: "$label", count: { $sum: 1 } } },
+              { $match: { _id: { $ne: null }, count: { $gt: 1 } } },
+              { $project: { label: "$_id", _id: 0 } },
+            ])
+            .toArray(function (err, res) {
+              if (err) throw err;
+              console.log(res);
+            })
+        );
+
+        duplicatedDatas = getDuplicatedDatas;
+
+        let result = extractedData.filter(
+          (item) => !getDuplicatedDatas.some((v) => v.label === item.label)
+        );
+        console.log(result);
+
+        return result;
       }
 
+      async function getThumbnailByUrl(inputRestaurants) {
+        const getRestaurants = await Promise.all(
+          inputRestaurants.map(async (innerRestaurant) => {
+            const getImage = await Axios.get(innerRestaurant.thumbnail, {
+              responseType: "stream",
+            });
+            const imageType = "jpeg";
+            const sharpTransformer = sharp()
+              .resize(200, 200)
+              .toFormat(imageType);
+            const sharpImage = await getImage.data
+              .pipe(sharpTransformer)
+              .toBuffer()
+              .catch((err) => err);
 
+            const base64Image = sharpImage.toString("base64");
+
+            let modifyingRestaurant = Object.assign(innerRestaurant);
+            modifyingRestaurant["thumbnail"] = base64Image;
+
+            return modifyingRestaurant;
+          })
+        );
+        return getRestaurants;
+      }
+
+      async function getGeocodingData(inputRestaurants) {
+        console.log("inputRestaurants", inputRestaurants);
+
+        if (inputRestaurants.length === 0) {
+          return [];
+        }
+
+        await Promise.all(
+          inputRestaurants.map(async (restaurant) => {
+            const address = encodeURIComponent(
+              `${restaurant.address_sido} ${restaurant.address_sigungu} ${restaurant.address_eupmyeondong} ${restaurant.address_detail}`
+            );
+
+            const geocodeUrl = `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${address}`;
+
+            const response = await Axios.get(geocodeUrl, {
+              headers: Utility.NAVER_CLIENT_HEADER,
+            });
+
+            if (response.data.status === "OK") {
+              const location = response.data.addresses[0];
+              // 네이버 Maps Geocoding API로 받은 데이터를 활용합니다.
+              const naverGetLat = Number(location.y);
+              const naverGetLng = Number(location.x);
+              // 도로명 주소는 address_detail을 뒤에 추가해 줌
+              const naverGetStreetAddress = `${location.roadAddress} ${restaurant.address_detail}`;
+
+              const restaurantId = Utility.UUID();
+              const imageId = Utility.UUID(true);
+
+              const updateNewRestaurant = {
+                id: restaurantId,
+                source: restaurant.source ?? "",
+                label: restaurant.label, // 가게명
+                contact: restaurant.contact, // 연락처
+                representative_menu: restaurant.representative_menu ?? "", // 대표메뉴
+                info: restaurant.info ?? "", // 기타정보
+                description: restaurant.description ?? "", // 메모
+                lat: naverGetLat, // 위도
+                lng: naverGetLng, // 경도
+                address_sido: restaurant.address_sido ?? "",
+                address_sigungu: restaurant.address_sigungu ?? "",
+                address_eupmyeondong: restaurant.address_eupmyeondong ?? "",
+                address_detail: restaurant.address_detail ?? "",
+                address_street: naverGetStreetAddress,
+                closed_days: restaurant.closed_days ?? "", // 휴무일
+                operation_time: restaurant.operation_time ?? "", // 영업시간
+                sns_link: restaurant.sns_link ?? "", // sns 링크
+                naver_map_link: restaurant.naver_map_link ?? "", // naverMap 링크
+                youtube_uploadedAt: restaurant.youtube_uploadedAt ?? "", // 유튜브 업로드일자
+                youtube_link: restaurant.youtube_link ?? "", // 유튜브 링크
+                baemin_link: restaurant.baemin_link ?? "", // 배민링크
+                thumbnail: imageId ?? "", // 썸네일 이미지 Id
+                created_at: new Date().getTime(),
+                updated_at: new Date().getTime(),
+              };
+
+              await imageCol.insertOne({
+                id: imageId,
+                image: restaurant.thumbnail,
+                type: "thumbnail",
+              });
+
+              await restaurantCol.insertOne(updateNewRestaurant);
+            }
+          })
+        );
+      }
 
       return {
         statusCode: 200,
-        message: "",
+        message: `${new Date().toLocaleString()} csv update complete`,
         data: {
-          newRestaurants: newRestaurants
-        }
+          duplicatedDatas: duplicatedDatas,
+        },
       };
     },
   },
@@ -484,6 +619,7 @@ module.exports = {
         statusCode: 200,
         message: `total_page : ${totalPage} || pagination : ${selectedPage}`,
         data: {
+          limit: limit,
           dataCount: totalDataCount,
           total_page: totalPage,
           selected_page: selectedPage,
@@ -543,7 +679,6 @@ module.exports = {
     },
   },
 
-
   // "POST /test": {
   //   async handler(req, res) {
   //     const { url } = req.body;
@@ -588,5 +723,4 @@ module.exports = {
   //     }
 
   //   }
-
 };

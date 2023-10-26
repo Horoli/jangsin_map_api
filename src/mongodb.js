@@ -37,6 +37,7 @@ class MongoDB {
   getDatabase(name = this.$config.db) {
     return this.$mongoConnection.db(name);
   }
+
   async innerGetCollection(name) {
     const getCollectionsList = await this.getDatabase()
       .listCollections()
