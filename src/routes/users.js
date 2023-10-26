@@ -6,6 +6,7 @@ const Utility = require("../utility");
 
 module.exports = {
   "POST /sign_up": {
+    middleware: ["app"],
     async handler(req, res) {
       const { id, pw, type } = req.body;
 

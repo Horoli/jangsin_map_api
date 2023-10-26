@@ -146,6 +146,7 @@ module.exports = {
   },
 
   "POST /create_csv_upload": {
+    middlewares: ["auth"],
     async handler(req, res) {
       const { csv } = req.body;
 
@@ -168,16 +169,6 @@ module.exports = {
       console.log("step 3 : getThumbnailByUrl");
       const updateNewRestaurants = await getGeocodingData(finalRestaurant);
       console.log("step 4 : getGeocodingData", updateNewRestaurants);
-
-      console.log(updateNewRestaurants);
-
-      if (updateNewRestaurants.length === 0) {
-        return Utility.ERROR(
-          req.raw.url,
-          `upload failed : 업로드할 데이터가 없습니다.`,
-          403
-        );
-      }
 
       async function createData() {
         // TODO : csv header 추출
@@ -324,6 +315,15 @@ module.exports = {
             }
           })
         );
+      }
+
+      if (updateNewRestaurants.length === 0) {
+        console.log("updateNewRestaurants is empty");
+        return {
+          statusCode: 403,
+          message: `${new Date().toLocaleString()} updateData is empty.`,
+          data: {},
+        };
       }
 
       return {
