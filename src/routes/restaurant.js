@@ -7,6 +7,7 @@ const { get } = require("http");
 const { unescape } = require("querystring");
 // const puppeteer = require("puppeteer");
 // const cheerio = require("cheerio");
+const sharp = require("sharp");
 
 module.exports = {
   "POST /create": {
@@ -145,6 +146,58 @@ module.exports = {
       } catch (error) {
         return Utility.ERROR(req.raw.url, `geocoding error : ${error}`, 400);
       }
+    },
+  },
+
+  "POST /create_csv_upload": {
+    async handler(req, res) {
+      const { csv } = req.body;
+
+      if (csv === null || csv === undefined) {
+        return Utility.ERROR(req.raw.url, `csv is null : ${error}`, 403);
+      }
+      // csv로 입력받은 데이터를 저장할 array
+      let newRestaurants = [];
+
+      // TODO : csv header 추출
+      // header를 제거하기 위해 copyCsv를 생성
+
+      const columnHeader = csv[0];
+      const copyCsv = csv.splice(1);
+      await createData();
+      await getAwaitData([...newRestaurants]);
+
+      async function createData() {
+        for (const csvIndex in copyCsv) {
+          let newMap = {};
+          for (let columnHeaderIndex = 0; columnHeaderIndex < columnHeader.length; columnHeaderIndex++) {
+            newMap[columnHeader[columnHeaderIndex]] = copyCsv[csvIndex][columnHeaderIndex];
+          }
+          newRestaurants.push(newMap);
+        }
+      }
+
+      async function getAwaitData(input) {
+        console.log('input', input);
+        await Promise.all(input.map(async (restaurant) => {
+          const getImage = await Axios.get(restaurant.thumbnail, { responseType: 'stream' });
+          const imageType = 'jpeg'
+          const sharpTransformer = sharp().resize(200, 200).toFormat(imageType);
+          const sharpImage = await getImage.data.pipe(sharpTransformer).toBuffer().catch(err => err);
+          const base64Image = sharpImage.toString('base64')
+
+        }));
+      }
+
+
+
+      return {
+        statusCode: 200,
+        message: "",
+        data: {
+          newRestaurants: newRestaurants
+        }
+      };
     },
   },
 
@@ -490,6 +543,7 @@ module.exports = {
     },
   },
 
+
   // "POST /test": {
   //   async handler(req, res) {
   //     const { url } = req.body;
@@ -534,5 +588,5 @@ module.exports = {
   //     }
 
   //   }
-  // }
+
 };

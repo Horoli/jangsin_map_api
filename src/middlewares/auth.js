@@ -1,4 +1,5 @@
 const MongoDB = require("../mongodb");
+const Utility = require("../utility");
 
 module.exports = async (req, rep) => {
   const { token } = req.headers;
@@ -7,24 +8,19 @@ module.exports = async (req, rep) => {
   const usersCol = await MongoDB.getCollection("users");
 
   if (!token) {
-    const error = new Error("Error : Not permitted(please input token)");
-    error.status = 403;
-    return error;
+    return Utility.ERROR('token', "Not permitted(please input token)", 403);
   }
 
   const tokenInfo = await tokensCol.findOne({ token: token });
   if (tokenInfo === undefined) {
-    const error = new Error("Error : Not permitted(tokenInfo is undefined.)");
-    error.status = 403;
-    return error;
+    return Utility.ERROR('token', "Not permitted(tokenInfo is undefined.)", 403);
   } else if (Date.now() - tokenInfo.expireAt > 0) {
     await tokensCol.deleteOne({ token: token });
-    const error = new Error("Error : token Expired");
-    error.status = 403;
-    return error;
+    return Utility.ERROR('token', "token Expired", 403);
   }
 
-  tokenInfo.expireAt = Date.now() + 1 * 30 * 6 * 1000;
+  // tokenInfo.expireAt = Date.now() + 1 * 30 * 6 * 1000;
+  tokenInfo.expireAt = Date.now() + 1;
 
   req.token = tokenInfo;
   req.user = await usersCol.findOne({ id: tokenInfo.id });
