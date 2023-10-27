@@ -161,16 +161,27 @@ module.exports = {
       const imageCol = await MongoDB.getCollection("image");
 
       // csv로 입력받은 데이터를 저장할 array
-      const restaurantObjectArrays = await createData();
-      console.log("step 1 : createData");
-      const extractedData = await dropDuplicatedData(restaurantObjectArrays);
-      console.log("step 2 : dropDuplicatedData");
-      const finalRestaurant = await getThumbnailByUrl([...extractedData]);
-      console.log("step 3 : getThumbnailByUrl");
-      const updateNewRestaurants = await getGeocodingData(finalRestaurant);
-      console.log("step 4 : getGeocodingData", updateNewRestaurants);
+      const restaurantObjectArrays = await dataConvert();
+      console.log("step 1 : dataConvert");
+      const filteredData = await dataFiltering(restaurantObjectArrays);
 
-      async function createData() {
+      console.log('length', filteredData.length);
+
+      if (filteredData.length === 0) {
+        return {
+          statusCode: 403,
+          message: `${new Date().toLocaleString()} filteredData is empty`,
+          data: {},
+        };
+      }
+
+      console.log("step 2 : dataFiltering");
+      const finalRestaurant = await getThumbnailByUrl([...filteredData]);
+      console.log("step 3 : getThumbnailByUrl");
+      await getGeocodingData(finalRestaurant);
+      // console.log("step 4 : getGeocodingData", updateNewRestaurants);
+
+      async function dataConvert() {
         // TODO : csv header 추출
         const columnHeader = csv[0];
         // header를 제거하기 위해 copyCsv를 생성
@@ -194,32 +205,32 @@ module.exports = {
       }
 
       // TODO : 입력받은 csv에 포함된 중복은 걸러내지 못하는 상태
-      async function dropDuplicatedData(inputRestaurants) {
+      async function dataFiltering(inputRestaurants) {
+        // TODO : label이 없는 데이터 제거
         let extractedData = inputRestaurants.filter(
           (value) => value.label !== undefined
         );
 
-        const getDuplicatedDatas = await Promise.all(
-          await restaurantCol
-            .aggregate([
-              { $group: { _id: "$label", count: { $sum: 1 } } },
-              { $match: { _id: { $ne: null }, count: { $gt: 1 } } },
-              { $project: { label: "$_id", _id: 0 } },
-            ])
-            .toArray(function (err, res) {
-              if (err) throw err;
-              console.log(res);
-            })
+        // TODO : label이 중복되는 데이터 제거
+        extractedData = extractedData.filter(
+          (value, index, self) =>
+            index ===
+            self.findIndex((t) => t.label === value.label && t.label !== "")
         );
 
-        duplicatedDatas = getDuplicatedDatas;
+        // TODO : mongoDB에 저장된 데이터와 비교하여 중복된 데이터 제거
+        const filteringData = await Promise.all(
+          extractedData.map(async (restaurant) => {
+            const findResult = await restaurantCol.find({ label: restaurant.label }).toArray();
+            if (findResult.length === 0) {
+              return restaurant;
+            }
+          }
+          ));
 
-        let result = extractedData.filter(
-          (item) => !getDuplicatedDatas.some((v) => v.label === item.label)
-        );
-        console.log(result);
-
-        return result;
+        const finalFilteredData = filteringData.filter((value) => value !== undefined);
+        console.log('finalFilteredData', finalFilteredData)
+        return finalFilteredData;
       }
 
       async function getThumbnailByUrl(inputRestaurants) {
@@ -250,10 +261,6 @@ module.exports = {
 
       async function getGeocodingData(inputRestaurants) {
         console.log("inputRestaurants", inputRestaurants);
-
-        if (inputRestaurants.length === 0) {
-          return [];
-        }
 
         await Promise.all(
           inputRestaurants.map(async (restaurant) => {
@@ -317,21 +324,10 @@ module.exports = {
         );
       }
 
-      // if (updateNewRestaurants.length === 0) {
-      //   console.log("updateNewRestaurants is empty");
-      //   return {
-      //     statusCode: 403,
-      //     message: `${new Date().toLocaleString()} updateData is empty.`,
-      //     data: {},
-      //   };
-      // }
-
       return {
         statusCode: 200,
         message: `${new Date().toLocaleString()} csv update complete`,
-        data: {
-          duplicatedDatas: duplicatedDatas,
-        },
+        data: {},
       };
     },
   },
