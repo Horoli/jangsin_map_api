@@ -150,8 +150,6 @@ module.exports = {
     async handler(req, res) {
       const { csv } = req.body;
 
-      let duplicatedDatas = [];
-
       console.log("step 1");
       if (csv === null || csv === undefined) {
         return Utility.ERROR(req.raw.url, `csv is null`, 403);
@@ -162,10 +160,11 @@ module.exports = {
 
       // csv로 입력받은 데이터를 저장할 array
       const restaurantObjectArrays = await dataConvert();
-      console.log("step 1 : dataConvert");
+      // console.log("step 1 : dataConvert");
+      console.log("dataConvert : ", restaurantObjectArrays.length);
       const filteredData = await dataFiltering(restaurantObjectArrays);
 
-      console.log('length', filteredData.length);
+      // console.log('length', filteredData.length);
 
       if (filteredData.length === 0) {
         return {
@@ -175,28 +174,33 @@ module.exports = {
         };
       }
 
-      console.log("step 2 : dataFiltering");
+      // console.log("step 2 : dataFiltering");
       const finalRestaurant = await getThumbnailByUrl([...filteredData]);
-      console.log("step 3 : getThumbnailByUrl");
+      // console.log("step 3 : getThumbnailByUrl");
       await getGeocodingData(finalRestaurant);
       // console.log("step 4 : getGeocodingData", updateNewRestaurants);
 
       async function dataConvert() {
         // TODO : csv header 추출
-        const columnHeader = csv[0];
+        const csvHeader = csv[0];
+        console.log('csvHeader', csvHeader);
         // header를 제거하기 위해 copyCsv를 생성
-        const copyCsv = csv.splice(1);
+        const headlessCSV = csv.splice(1);
+
+        console.log('csvHeader', csvHeader.length);
+        console.log('headlessCSV', headlessCSV.length);
         let restaurantObjectArrays = [];
 
-        for (const csvIndex in copyCsv) {
+        for (const csvIndex in headlessCSV) {
           let individualRestaurantObject = {};
           for (
             let columnHeaderIndex = 0;
-            columnHeaderIndex < columnHeader.length;
+            columnHeaderIndex < csvHeader.length;
             columnHeaderIndex++
           ) {
-            individualRestaurantObject[columnHeader[columnHeaderIndex]] =
-              copyCsv[csvIndex][columnHeaderIndex];
+            // int나 double이 들어오는 경우 에러가 발생함. 무조건 String으로 변환
+            individualRestaurantObject[csvHeader[columnHeaderIndex]] =
+              headlessCSV[csvIndex][columnHeaderIndex].toString();
           }
           restaurantObjectArrays.push(individualRestaurantObject);
         }
@@ -204,32 +208,39 @@ module.exports = {
         return restaurantObjectArrays;
       }
 
-      // TODO : 입력받은 csv에 포함된 중복은 걸러내지 못하는 상태
       async function dataFiltering(inputRestaurants) {
-        // TODO : label이 없는 데이터 제거
+        // label이 없는 데이터 제거
         let extractedData = inputRestaurants.filter(
           (value) => value.label !== undefined
         );
 
-        // TODO : label이 중복되는 데이터 제거
-        extractedData = extractedData.filter(
-          (value, index, self) =>
-            index ===
-            self.findIndex((t) => t.label === value.label && t.label !== "")
-        );
+        // label이 중복되는 데이터를 제거하기 위해 Set을 사용
+        const labels = new Set();
 
-        // TODO : mongoDB에 저장된 데이터와 비교하여 중복된 데이터 제거
-        const filteringData = await Promise.all(
-          extractedData.map(async (restaurant) => {
-            const findResult = await restaurantCol.find({ label: restaurant.label }).toArray();
-            if (findResult.length === 0) {
-              return restaurant;
-            }
+        // console.log('after', extractedData.length);
+
+        // 중복되지 않는 데이터만 추출
+        extractedData = extractedData.filter((value) => {
+          if (!labels.has(value.label)) {
+            labels.add(value.label);
+            return true;
           }
-          ));
+          return false;
+        });
 
-        const finalFilteredData = filteringData.filter((value) => value !== undefined);
-        console.log('finalFilteredData', finalFilteredData)
+        // console.log('before', extractedData.length);
+
+        // mongoDB에 저장된 데이터와 비교하여 중복되는 label들을 가져옴
+        const existingLabels = new Set(
+          (await restaurantCol.find({ label: { $in: Array.from(labels) } })
+            .toArray())
+            .map((restaurant) => restaurant.label));
+
+        // console.log('extractedData', extractedData);
+        // console.log('existingLabels', existingLabels);
+
+        const finalFilteredData = extractedData.filter((value) => !existingLabels.has(value.label));
+
         return finalFilteredData;
       }
 
