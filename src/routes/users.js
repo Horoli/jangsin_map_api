@@ -60,7 +60,8 @@ module.exports = {
       await tokensCol.insertOne({
         id: id,
         token: token,
-        expireAt: Date.now() + 1 * 30 * 60 * 1000,
+        expireAt: Date.now() + Utility.TOKEN_EXPIRE_TIME,
+        // expireAt: Date.now(),
       });
 
       return {

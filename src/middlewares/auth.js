@@ -11,8 +11,12 @@ module.exports = async (req, rep) => {
     return Utility.ERROR("token", "Not permitted(please input token)", 403);
   }
 
+
+
   const tokenInfo = await tokensCol.findOne({ token: token });
-  if (tokenInfo === undefined) {
+  console.log('tokenInfo', tokenInfo)
+  if (tokenInfo === undefined || tokenInfo === null) {
+
     return Utility.ERROR(
       "token",
       "Not permitted(tokenInfo is undefined.)",
@@ -23,8 +27,8 @@ module.exports = async (req, rep) => {
     return Utility.ERROR("token", "token Expired", 403);
   }
 
-  tokenInfo.expireAt = Date.now() + 1 * 30 * 6 * 1000;
-  // tokenInfo.expireAt = Date.now() + 1;
+  tokenInfo.expireAt = Date.now() + Utility.TOKEN_EXPIRE_TIME;
+  // tokenInfo.expireAt = Date.now();
 
   req.token = tokenInfo;
   req.user = await usersCol.findOne({ id: tokenInfo.id });

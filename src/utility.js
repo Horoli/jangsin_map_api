@@ -17,6 +17,8 @@ class Utility {
     "X-NCP-APIGW-API-KEY-ID": "rey7y37ny0",
     "X-NCP-APIGW-API-KEY": "N4o8cTaxOdHOYAydx7MjpOxwVH3oVMOzkmCiAt8g",
   };
+
+  static TOKEN_EXPIRE_TIME = (1 * 30 * 60 * 1000);
 }
 
 module.exports = Utility;
