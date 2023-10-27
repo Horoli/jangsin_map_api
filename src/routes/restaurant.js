@@ -317,14 +317,14 @@ module.exports = {
         );
       }
 
-      if (updateNewRestaurants.length === 0) {
-        console.log("updateNewRestaurants is empty");
-        return {
-          statusCode: 403,
-          message: `${new Date().toLocaleString()} updateData is empty.`,
-          data: {},
-        };
-      }
+      // if (updateNewRestaurants.length === 0) {
+      //   console.log("updateNewRestaurants is empty");
+      //   return {
+      //     statusCode: 403,
+      //     message: `${new Date().toLocaleString()} updateData is empty.`,
+      //     data: {},
+      //   };
+      // }
 
       return {
         statusCode: 200,
