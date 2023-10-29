@@ -160,9 +160,6 @@ module.exports = {
             address_eupmyeondong:
               naverGetEupmyeondong + " " + naverGetDetailLandNumber ?? "",
             address_detail: address_detail.trim(),
-            // address_detail: naverGetDetailBuildingName
-            //   ? (naverGetDetailBuildingName + " " + address_detail).trim()
-            //   : address_detail,
             address_street: naverGetStreetAddress,
             closed_days: closed_days ?? "", // 휴무일
             operation_time: operation_time ?? "", // 영업시간
@@ -400,13 +397,7 @@ module.exports = {
                     " " +
                     naverDetailLandNumber
                   ).trim(),
-
                   address_detail: restaurant.address_detail.trim(),
-                  // address_detail: (
-                  //   naverGetDetailBuildingName +
-                  //   " " +
-                  //   restaurant.address_detail
-                  // ).trim(),
                   address_street: naverGetStreetAddress,
                   closed_days: restaurant.closed_days ?? "", // 휴무일
                   operation_time: restaurant.operation_time ?? "", // 영업시간
@@ -437,7 +428,7 @@ module.exports = {
         statusCode: 200,
         message: `${new Date().toLocaleString()} csv update complete`,
         data: {
-          count: finalRestaurants,
+          count: finalRestaurants.length,
         },
       };
     },
