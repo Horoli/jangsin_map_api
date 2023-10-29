@@ -16,11 +16,13 @@ module.exports = {
         contact, // 연락처
         info, // 정보
         description, // 메모
+        menu_category,
         representative_menu, // 대표메뉴
-        address_sido, // 주소 - 시도
-        address_sigungu, // 주소 - 시군구
-        address_eupmyeondong, // 주소 - 읍면동
+        // address_sido, // 주소 - 시도
+        // address_sigungu, // 주소 - 시군구
+        // address_eupmyeondong, // 주소 - 읍면동
         address_detail, // 주소 - 세부
+        address_street, // 주소 - 세부
         closed_days, // 휴무일
         operation_time, // 영업시간
         youtube_uploadedAt,
@@ -37,22 +39,29 @@ module.exports = {
         return Utility.ERROR(req.raw.url, "remove input id", 400);
       }
 
+      const restaurantCol = await MongoDB.getCollection("restaurant");
+      const imageCol = await MongoDB.getCollection("image");
+
       if (
         label === undefined ||
         label === "" ||
-        address_sido === undefined ||
-        address_sido === "" ||
-        address_sigungu === undefined ||
-        address_sigungu === "" ||
+        // address_sido === undefined ||
+        // address_sido === "" ||
+        // address_sigungu === undefined ||
+        // address_sigungu === "" ||
         contact === undefined ||
         contact === ""
       ) {
         return Utility.ERROR(req.raw.url, "required parameter is empty", 400);
       }
       // 변환하려는 주소를 입력합니다.
-      const address = encodeURIComponent(
-        `${address_sido} ${address_sigungu} ${address_eupmyeondong} ${address_detail}`
-      );
+      // const address = encodeURIComponent(
+      //   `${address_sido} ${address_sigungu} ${address_eupmyeondong} ${address_detail}`
+      // );
+
+      console.log(address_street);
+
+      const address = encodeURIComponent(address_street);
 
       // Naver Maps Geocoding API URL을 설정합니다.
       const geocodeUrl = `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${address}`;
@@ -68,10 +77,47 @@ module.exports = {
           const naverGetLat = Number(location.y);
           const naverGetLng = Number(location.x);
           // 도로명 주소는 address_detail을 뒤에 추가해 줌
+
           const naverGetStreetAddress = `${location.roadAddress} ${address_detail}`;
 
-          const restaurantCol = await MongoDB.getCollection("restaurant");
-          const imageCol = await MongoDB.getCollection("image");
+          let {
+            naverGetSido,
+            naverGetSigungu,
+            naverGetEupmyeondong,
+            naverGetDetailBuildingName,
+            naverGetDetailLandNumber,
+          } = "";
+
+          // console.log("step 1");
+
+          location.addressElements.forEach((e) => {
+            if (e.types.includes("SIDO")) {
+              naverGetSido = e.longName;
+            }
+
+            if (e.types.includes("SIGUGUN")) {
+              naverGetSigungu = e.longName;
+            }
+
+            if (e.types.includes("DONGMYUN")) {
+              naverGetEupmyeondong = e.longName;
+            }
+
+            if (e.types.includes("BUILDING_NAME")) {
+              naverGetDetailBuildingName = e.longName;
+            }
+
+            if (e.types.includes("LAND_NUMBER")) {
+              naverGetDetailLandNumber = e.longName;
+            }
+          });
+
+          console.log(
+            naverGetSido,
+            naverGetSigungu,
+            naverGetEupmyeondong,
+            naverGetDetailLandNumber
+          );
 
           const getDataByLabel = await restaurantCol.findOne({ label: label });
 
@@ -103,15 +149,20 @@ module.exports = {
             source: source ?? "",
             label: label, // 가게명
             contact: contact, // 연락처
+            menu_category: menu_category ?? "",
             representative_menu: representative_menu ?? "", // 대표메뉴
             info: info ?? "", // 기타정보
             description: description ?? "", // 메모
             lat: naverGetLat, // 위도
             lng: naverGetLng, // 경도
-            address_sido: address_sido ?? "",
-            address_sigungu: address_sigungu ?? "",
-            address_eupmyeondong: address_eupmyeondong ?? "",
-            address_detail: address_detail ?? "",
+            address_sido: naverGetSido ?? "",
+            address_sigungu: naverGetSigungu ?? "",
+            address_eupmyeondong:
+              naverGetEupmyeondong + " " + naverGetDetailLandNumber ?? "",
+            address_detail: address_detail.trim(),
+            // address_detail: naverGetDetailBuildingName
+            //   ? (naverGetDetailBuildingName + " " + address_detail).trim()
+            //   : address_detail,
             address_street: naverGetStreetAddress,
             closed_days: closed_days ?? "", // 휴무일
             operation_time: operation_time ?? "", // 영업시간
@@ -160,11 +211,9 @@ module.exports = {
 
       // csv로 입력받은 데이터를 저장할 array
       const restaurantObjectArrays = await dataConvert();
-      // console.log("step 1 : dataConvert");
-      console.log("dataConvert : ", restaurantObjectArrays.length);
       const filteredData = await dataFiltering(restaurantObjectArrays);
 
-      // console.log('length', filteredData.length);
+      console.log("dataConvert : ", filteredData.length);
 
       if (filteredData.length === 0) {
         return {
@@ -173,22 +222,21 @@ module.exports = {
           data: {},
         };
       }
+      console.log("step 2");
 
-      // console.log("step 2 : dataFiltering");
-      const finalRestaurant = await getThumbnailByUrl([...filteredData]);
-      // console.log("step 3 : getThumbnailByUrl");
-      await getGeocodingData(finalRestaurant);
-      // console.log("step 4 : getGeocodingData", updateNewRestaurants);
+      const finalRestaurants = await getThumbnailByUrl([...filteredData]);
+
+      console.log("step 3");
+      const asd = await getGeocodingData(finalRestaurants);
+      console.log("step 4");
 
       async function dataConvert() {
         // TODO : csv header 추출
         const csvHeader = csv[0];
-        console.log('csvHeader', csvHeader);
         // header를 제거하기 위해 copyCsv를 생성
         const headlessCSV = csv.splice(1);
+        console.log("headlessCSV", headlessCSV.length);
 
-        console.log('csvHeader', csvHeader.length);
-        console.log('headlessCSV', headlessCSV.length);
         let restaurantObjectArrays = [];
 
         for (const csvIndex in headlessCSV) {
@@ -199,11 +247,14 @@ module.exports = {
             columnHeaderIndex++
           ) {
             // int나 double이 들어오는 경우 에러가 발생함. 무조건 String으로 변환
+            // 앞 뒤 공백 제거 반드시 해줘야 함
             individualRestaurantObject[csvHeader[columnHeaderIndex]] =
-              headlessCSV[csvIndex][columnHeaderIndex].toString();
+              headlessCSV[csvIndex][columnHeaderIndex].toString().trim();
           }
           restaurantObjectArrays.push(individualRestaurantObject);
         }
+
+        console.log("restaurantObjectArrays", restaurantObjectArrays.length);
 
         return restaurantObjectArrays;
       }
@@ -217,8 +268,6 @@ module.exports = {
         // label이 중복되는 데이터를 제거하기 위해 Set을 사용
         const labels = new Set();
 
-        // console.log('after', extractedData.length);
-
         // 중복되지 않는 데이터만 추출
         extractedData = extractedData.filter((value) => {
           if (!labels.has(value.label)) {
@@ -228,18 +277,20 @@ module.exports = {
           return false;
         });
 
-        // console.log('before', extractedData.length);
-
         // mongoDB에 저장된 데이터와 비교하여 중복되는 label들을 가져옴
         const existingLabels = new Set(
-          (await restaurantCol.find({ label: { $in: Array.from(labels) } })
-            .toArray())
-            .map((restaurant) => restaurant.label));
+          (
+            await restaurantCol
+              .find({ label: { $in: Array.from(labels) } })
+              .toArray()
+          ).map((restaurant) => restaurant.label)
+        );
 
-        // console.log('extractedData', extractedData);
-        // console.log('existingLabels', existingLabels);
+        const finalFilteredData = extractedData.filter(
+          (value) => !existingLabels.has(value.label)
+        );
 
-        const finalFilteredData = extractedData.filter((value) => !existingLabels.has(value.label));
+        console.log("finalFilteredData", finalFilteredData.length);
 
         return finalFilteredData;
       }
@@ -271,13 +322,10 @@ module.exports = {
       }
 
       async function getGeocodingData(inputRestaurants) {
-        console.log("inputRestaurants", inputRestaurants);
-
         await Promise.all(
           inputRestaurants.map(async (restaurant) => {
-            const address = encodeURIComponent(
-              `${restaurant.address_sido} ${restaurant.address_sigungu} ${restaurant.address_eupmyeondong} ${restaurant.address_detail}`
-            );
+            const address = encodeURIComponent(restaurant.address_street);
+            console.log("restaurant.address_street", restaurant.address_street);
 
             const geocodeUrl = `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${address}`;
 
@@ -286,50 +334,100 @@ module.exports = {
             });
 
             if (response.data.status === "OK") {
-              const location = response.data.addresses[0];
-              // 네이버 Maps Geocoding API로 받은 데이터를 활용합니다.
-              const naverGetLat = Number(location.y);
-              const naverGetLng = Number(location.x);
-              // 도로명 주소는 address_detail을 뒤에 추가해 줌
-              const naverGetStreetAddress = `${location.roadAddress} ${restaurant.address_detail}`;
+              // 주소가 확실하지 않으면 addresses에 아무 값이 들어있지 않아 undefined가 뜨기때문에
+              // exception 처리
+              if (response.data.addresses.length === 0) {
+                console.log("csv upload error : unknown address");
+              }
 
-              const restaurantId = Utility.UUID();
-              const imageId = Utility.UUID(true);
+              if (response.data.addresses.length !== 0) {
+                const location = response.data.addresses[0];
 
-              const updateNewRestaurant = {
-                id: restaurantId,
-                source: restaurant.source ?? "",
-                label: restaurant.label, // 가게명
-                contact: restaurant.contact, // 연락처
-                representative_menu: restaurant.representative_menu ?? "", // 대표메뉴
-                info: restaurant.info ?? "", // 기타정보
-                description: restaurant.description ?? "", // 메모
-                lat: naverGetLat, // 위도
-                lng: naverGetLng, // 경도
-                address_sido: restaurant.address_sido ?? "",
-                address_sigungu: restaurant.address_sigungu ?? "",
-                address_eupmyeondong: restaurant.address_eupmyeondong ?? "",
-                address_detail: restaurant.address_detail ?? "",
-                address_street: naverGetStreetAddress,
-                closed_days: restaurant.closed_days ?? "", // 휴무일
-                operation_time: restaurant.operation_time ?? "", // 영업시간
-                sns_link: restaurant.sns_link ?? "", // sns 링크
-                naver_map_link: restaurant.naver_map_link ?? "", // naverMap 링크
-                youtube_uploadedAt: restaurant.youtube_uploadedAt ?? "", // 유튜브 업로드일자
-                youtube_link: restaurant.youtube_link ?? "", // 유튜브 링크
-                baemin_link: restaurant.baemin_link ?? "", // 배민링크
-                thumbnail: imageId ?? "", // 썸네일 이미지 Id
-                created_at: new Date().getTime(),
-                updated_at: new Date().getTime(),
-              };
+                // 네이버 Maps Geocoding API로 받은 데이터를 활용합니다.
+                const naverGetLat = Number(location.y);
+                const naverGetLng = Number(location.x);
+                // 도로명 주소는 address_detail을 뒤에 추가해 줌
+                const naverGetStreetAddress = `${location.roadAddress} ${restaurant.address_detail}`;
 
-              await imageCol.insertOne({
-                id: imageId,
-                image: restaurant.thumbnail,
-                type: "thumbnail",
-              });
+                let {
+                  naverGetSido,
+                  naverGetSigungu,
+                  naverGetEupmyeondong,
+                  naverGetDetailBuildingName,
+                  naverDetailLandNumber,
+                } = "";
 
-              await restaurantCol.insertOne(updateNewRestaurant);
+                location.addressElements.forEach((e) => {
+                  if (e.types.includes("SIDO")) {
+                    naverGetSido = e.longName;
+                  }
+
+                  if (e.types.includes("SIGUGUN")) {
+                    naverGetSigungu = e.longName;
+                  }
+
+                  if (e.types.includes("DONGMYUN")) {
+                    naverGetEupmyeondong = e.longName;
+                  }
+
+                  if (e.types.includes("BUILDING_NAME")) {
+                    naverGetDetailBuildingName = e.longName;
+                  }
+
+                  if (e.types.includes("LAND_NUMBER")) {
+                    naverDetailLandNumber = e.longName;
+                  }
+                });
+
+                const restaurantId = Utility.UUID();
+                const imageId = Utility.UUID(true);
+
+                const updateNewRestaurant = {
+                  id: restaurantId,
+                  source: restaurant.source ?? "",
+                  label: restaurant.label, // 가게명
+                  contact: restaurant.contact, // 연락처
+                  menu_category: restaurant.menu_category ?? "",
+                  representative_menu: restaurant.representative_menu ?? "", // 대표메뉴
+                  info: restaurant.info ?? "", // 기타정보
+                  description: restaurant.description ?? "", // 메모
+                  lat: naverGetLat, // 위도
+                  lng: naverGetLng, // 경도
+                  address_sido: naverGetSido,
+                  address_sigungu: naverGetSigungu,
+                  address_eupmyeondong: (
+                    naverGetEupmyeondong +
+                    " " +
+                    naverDetailLandNumber
+                  ).trim(),
+
+                  address_detail: restaurant.address_detail.trim(),
+                  // address_detail: (
+                  //   naverGetDetailBuildingName +
+                  //   " " +
+                  //   restaurant.address_detail
+                  // ).trim(),
+                  address_street: naverGetStreetAddress,
+                  closed_days: restaurant.closed_days ?? "", // 휴무일
+                  operation_time: restaurant.operation_time ?? "", // 영업시간
+                  sns_link: restaurant.sns_link ?? "", // sns 링크
+                  naver_map_link: restaurant.naver_map_link ?? "", // naverMap 링크
+                  youtube_uploadedAt: restaurant.youtube_uploadedAt ?? "", // 유튜브 업로드일자
+                  youtube_link: restaurant.youtube_link ?? "", // 유튜브 링크
+                  baemin_link: restaurant.baemin_link ?? "", // 배민링크
+                  thumbnail: imageId ?? "", // 썸네일 이미지 Id
+                  created_at: new Date().getTime(),
+                  updated_at: new Date().getTime(),
+                };
+
+                await imageCol.insertOne({
+                  id: imageId,
+                  image: restaurant.thumbnail,
+                  type: "thumbnail",
+                });
+
+                await restaurantCol.insertOne(updateNewRestaurant);
+              }
             }
           })
         );
@@ -338,7 +436,9 @@ module.exports = {
       return {
         statusCode: 200,
         message: `${new Date().toLocaleString()} csv update complete`,
-        data: {},
+        data: {
+          count: finalRestaurants,
+        },
       };
     },
   },
@@ -353,11 +453,13 @@ module.exports = {
         contact,
         info,
         description,
+        menu_category,
         representative_menu,
-        address_sido,
-        address_sigungu,
-        address_eupmyeondong,
+        // address_sido,
+        // address_sigungu,
+        // address_eupmyeondong,
         address_detail,
+        address_street,
         closed_days,
         operation_time,
         sns_link,
@@ -382,11 +484,11 @@ module.exports = {
       if (
         typeof getDataById.label != typeof label ||
         typeof getDataById.contact != typeof contact ||
-        typeof getDataById.info != typeof info ||
+        typeof getDataById.info != typeof info
         // typeof getDataById.description != typeof description ||
         // typeof getDataById.representative_menu != typeof representative_menu ||
-        typeof getDataById.address_sido != typeof address_sido ||
-        typeof getDataById.address_sigungu != typeof address_sigungu
+        // typeof getDataById.address_sido != typeof address_sido ||
+        // typeof getDataById.address_sigungu != typeof address_sigungu
         // typeof getDataById.address_eupmyeondong != typeof address_eupmyeondong ||
         // typeof getDataById.address_detail != typeof address_detail ||
         // typeof getDataById.address_street != typeof address_street ||
@@ -403,9 +505,11 @@ module.exports = {
       }
 
       // 변환하려는 주소를 입력합니다.
-      const address = encodeURIComponent(
-        `${address_sido} ${address_sigungu} ${address_eupmyeondong} ${address_detail}`
-      );
+
+      const address = encodeURIComponent(address_street);
+      // const address = encodeURIComponent(
+      //   `${address_sido} ${address_sigungu} ${address_eupmyeondong} ${address_detail}`
+      // );
 
       // Naver Maps Geocoding API URL을 설정합니다.
       const geocodeUrl = `https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query=${address}`;
@@ -422,6 +526,36 @@ module.exports = {
           // 도로명 주소는 address_detail을 뒤에 추가해 줌
           const naverGetStreetAddress = `${location.roadAddress} ${address_detail}`;
           console.log(location);
+
+          let {
+            naverGetSido,
+            naverGetSigungu,
+            naverGetEupmyeondong,
+            naverGetDetailBuildingName,
+            naverGetDetailLandNumber,
+          } = "";
+
+          location.addressElements.forEach((e) => {
+            if (e.types.includes("SIDO")) {
+              naverGetSido = e.longName;
+            }
+
+            if (e.types.includes("SIGUGUN")) {
+              naverGetSigungu = e.longName;
+            }
+
+            if (e.types.includes("DONGMYUN")) {
+              naverGetEupmyeondong = e.longName;
+            }
+
+            if (e.types.includes("BUILDING_NAME")) {
+              naverGetDetailBuildingName = e.longName;
+            }
+
+            if (e.types.includes("LAND_NUMBER")) {
+              naverGetDetailLandNumber = e.longName;
+            }
+          });
 
           // TODO : 기존에 저장된 이미지가 없고, 이미지가 없을 떄
           if (add_thumbnail === "" && getDataById.thumbnail === "") {
@@ -472,15 +606,20 @@ module.exports = {
             contact: contact ?? getDataById.contact,
             info: info ?? getDataById.info,
             description: description ?? getDataById.description,
+            menu_category: menu_category ?? getDataById.menu_category,
             representative_menu:
               representative_menu ?? getDataById.representative_menu,
             lat: naverGetLat,
             lng: naverGetLng,
-            address_sido: address_sido ?? getDataById.address_sido,
-            address_sigungu: address_sigungu ?? getDataById.address_sigungu,
+            address_sido: naverGetSido ?? getDataById.address_sido,
+            address_sigungu: naverGetSigungu ?? getDataById.address_sigungu,
             address_eupmyeondong:
-              address_eupmyeondong ?? getDataById.address_eupmyeondong,
-            address_detail: address_detail ?? getDataById.address_detail,
+              (naverGetEupmyeondong + " " + naverGetDetailLandNumber).trim() ??
+              getDataById.address_eupmyeondong,
+            address_detail: address_detail.trim(),
+            // address_detail: naverGetDetailBuildingName
+            //   ? (naverGetDetailBuildingName + " " + address_detail).trim()
+            //   : address_detail,
             address_street: naverGetStreetAddress ?? getDataById.address_street,
             closed_days: closed_days ?? getDataById.closed_days,
             operation_time: operation_time ?? getDataById.operation_time,
@@ -491,7 +630,7 @@ module.exports = {
             youtube_link: youtube_link ?? getDataById.youtube_link,
             baemin_link: baemin_link ?? getDataById.baemin_link,
             thumbnail: thumbnail ?? getDataById.thumbnail,
-            created_at: getDataById.createdAt,
+            created_at: getDataById.created_at,
             updated_at: new Date().getTime(),
           };
 
@@ -637,7 +776,7 @@ module.exports = {
   },
 
   "DELETE /delete": {
-    middlewares: ["app"],
+    middlewares: ["auth"],
     async handler(req, res) {
       const { id } = req.body;
 

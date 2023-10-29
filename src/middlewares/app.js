@@ -6,7 +6,7 @@ module.exports = async (req, rep) => {
   const client_key = req.headers["client-key"];
   // console.log(req.headers);
 
-  console.log('client-key', client_key);
+  // console.log('client-key', client_key);
   if (client_key === undefined) {
     return Utility.ERROR("client auth", "client-key is empty", 403);
   }
@@ -31,7 +31,6 @@ module.exports = async (req, rep) => {
   // console.log(isApp);
 
   if (!isApp) {
-
     return Utility.ERROR("client auth", "invalid client", 403);
   }
 };
