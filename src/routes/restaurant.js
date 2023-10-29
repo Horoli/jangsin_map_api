@@ -224,8 +224,9 @@ module.exports = {
       const finalRestaurants = await getThumbnailByUrl([...filteredData]);
 
       console.log("step 3");
-      const asd = await getGeocodingData(finalRestaurants);
+      const geocodingResult = await getGeocodingData(finalRestaurants);
       console.log("step 4");
+      console.log(geocodingResult);
 
       async function dataConvert() {
         // TODO : csv header 추출
@@ -319,6 +320,9 @@ module.exports = {
       }
 
       async function getGeocodingData(inputRestaurants) {
+        let completeCount = 0;
+        let undefinedAddress = [];
+
         await Promise.all(
           inputRestaurants.map(async (restaurant) => {
             const address = encodeURIComponent(restaurant.address_street);
@@ -335,7 +339,10 @@ module.exports = {
               // exception 처리
               if (response.data.addresses.length === 0) {
                 console.log("csv upload error : unknown address");
+                undefinedAddress.push(restaurant.label);
+                return;
               }
+              completeCount++;
 
               if (response.data.addresses.length !== 0) {
                 const location = response.data.addresses[0];
@@ -422,14 +429,18 @@ module.exports = {
             }
           })
         );
+        console.log("completeCount", completeCount);
+        console.log("undefinedAddress", undefinedAddress);
+        return {
+          completeCount: completeCount,
+          undefinedAddressRestaurants: undefinedAddress,
+        };
       }
 
       return {
         statusCode: 200,
         message: `${new Date().toLocaleString()} csv update complete`,
-        data: {
-          count: finalRestaurants.length,
-        },
+        data: geocodingResult,
       };
     },
   },
