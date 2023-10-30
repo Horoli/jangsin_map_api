@@ -672,70 +672,42 @@ module.exports = {
   TODO : 
     대표메뉴(representative_menu)로 필터링하는 쿼리 추가
     가게출처(source)로 필터링하는 쿼리 추가
+    :source:menu
   */
-  "GET /pagination/:page:limit:sido": {
+  "GET /pagination/:page:limit:sido:sigungu": {
     middlewares: ["app"],
     async handler(req, res) {
       const selectedPage = parseInt(req.query.page);
       const limit = parseInt(req.query.limit);
       const sido = req.query.sido;
-      // const sigungu = req.query.sigungu;
+      const sigungu = req.query.sigungu;
+      // const source = req.query.source;
+      // const menu = req.query.menu;
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const totalCount = await restaurantCol.count();
-
-      // console.log(
-      //   "sido",
-      //   typeof sido,
-      //   sido === null,
-      //   sido === undefined,
-      //   sido === ""
-      // );
-      // console.log(
-      //   "sigungu",
-      //   typeof sigungu,
-      //   sigungu === null,
-      //   sigungu === undefined,
-      //   sigungu === ""
-      // );
 
       if (totalCount === 0) {
         console.log(totalCount);
         return Utility.ERROR(req.raw.url, "restaurantCol is empty", 400);
       }
+      // console.log("menu", menu);
+      // console.log("source", source);
 
       const startIndex = (selectedPage - 1) * limit;
-      // TODO : sido만 입력되었으면 sido로 쿼리
-      if (sido !== undefined) {
-        const queryData = await restaurantCol
-          .find({ address_sido: sido })
-          .skip(startIndex)
-          .limit(limit)
-          .toArray();
 
-        console.log("sido queryData", queryData);
-        const queryCount = await restaurantCol.count({ address_sido: sido });
-        const totalQueryPage = Math.ceil(queryCount / limit);
+      /*
 
-        return {
-          statusCode: 200,
-          message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
-          data: {
-            limit: limit,
-            dataCount: queryCount,
-            total_page: totalQueryPage,
-            selected_page: selectedPage,
-            pagination_data: queryData,
-          },
-        };
-      }
+       sido와 sigungu도 입력되면 sido, sigungu로 쿼리
 
-      // TODO : sido가 입력되고, sigungu도 입력되면 sido, sigungu로 쿼리
+      */
+
       if (sido !== undefined && sigungu !== undefined) {
-        const queryData = await restaurantCol
+        const sigunguQueryData = await restaurantCol
           .find({ address_sido: sido, address_sigungu: sigungu })
           .skip(startIndex)
           .limit(limit)
           .toArray();
+
         const queryCount = await restaurantCol.count({
           address_sido: sido,
           address_sigungu: sigungu,
@@ -744,6 +716,35 @@ module.exports = {
         return {
           statusCode: 200,
           message: `sido + sigungu || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
+          data: {
+            limit: limit,
+            dataCount: queryCount,
+            total_page: totalQueryPage,
+            selected_page: selectedPage,
+            pagination_data: sigunguQueryData,
+          },
+        };
+      }
+
+      /*
+
+        sido만 입력 됐을 경우, sido로 쿼리
+
+      */
+
+      if (sido !== undefined) {
+        const queryData = await restaurantCol
+          .find({ address_sido: sido })
+          .skip(startIndex)
+          .limit(limit)
+          .toArray();
+
+        const queryCount = await restaurantCol.count({ address_sido: sido });
+        const totalQueryPage = Math.ceil(queryCount / limit);
+
+        return {
+          statusCode: 200,
+          message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
           data: {
             limit: limit,
             dataCount: queryCount,
@@ -825,6 +826,45 @@ module.exports = {
       return {
         statusCode: 200,
         data: getData,
+      };
+    },
+  },
+
+  /*
+
+    쿼리로 아무 값이 들어오지 않으면 db에 저장된 sido 중 고유한 값들만 return
+    쿼리에 sido(ex:서울특별시)가 들어오면 입력된 sido와 일치하는 값 중, 고유한 sigungu를 return
+
+  */
+
+  "GET /district/:sido": {
+    // middlewares: ["app"],
+    async handler(req, res) {
+      const sido = req.query.sido;
+      console.log(sido);
+      const restaurantCol = await MongoDB.getCollection("restaurant");
+
+      const getDistrictSido = await restaurantCol.distinct("address_sido");
+
+      if (sido != null) {
+        const getDistrictSigungu = await restaurantCol.distinct(
+          "address_sigungu",
+          { address_sido: sido }
+        );
+        return {
+          statusCode: 200,
+          data: {
+            sido: getDistrictSido,
+            sigungu: getDistrictSigungu,
+          },
+        };
+      }
+
+      return {
+        statusCode: 200,
+        data: {
+          sido: getDistrictSido,
+        },
       };
     },
   },
