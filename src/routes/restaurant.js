@@ -223,6 +223,7 @@ module.exports = {
 
       const finalRestaurants = await getThumbnailByUrl([...filteredData]);
 
+
       console.log("step 3");
       const geocodingResult = await getGeocodingData(finalRestaurants);
       console.log("step 4");
@@ -320,7 +321,9 @@ module.exports = {
             // TODO : thumbnail === undefined || thumbnail === "" 일 경우
             if (innerRestaurant.thumbnail === undefined || innerRestaurant.thumbnail === "") {
               console.log('thumbnail is undefined or empty');
-              return;
+              console.log('innerRestaurant', innerRestaurant);
+
+              return innerRestaurant;
             }
 
             const getImage = await Axios.get(innerRestaurant.thumbnail, {
@@ -359,6 +362,7 @@ module.exports = {
 
         await Promise.all(
           inputRestaurants.map(async (restaurant) => {
+            console.log('restaurant', restaurant);
             const address = encodeURIComponent(restaurant.address_street);
             console.log("restaurant.address_street", restaurant.address_street);
 
