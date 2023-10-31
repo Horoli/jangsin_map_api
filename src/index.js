@@ -7,7 +7,9 @@ const MongoDB = require("./mongodb");
 class WebServer {
   constructor(opts = {}) {
     this.$opts = opts;
-    this.$webServer = Fastify();
+    this.$webServer = Fastify({
+      trustProxy: true,
+    });
     this.$middlewares = {};
 
     this.$_initMiddlewares();
@@ -82,7 +84,6 @@ class WebServer {
     this.$webServer.register(Cors, { origin: "*" });
 
     this.$webServer.listen({
-      trustProxy: true,
       host: this.$opts.host,
       port: this.$opts.port,
     });
