@@ -870,7 +870,8 @@ module.exports = {
   "GET /latlng": {
     middlewares: ["app"],
     async handler(req, res) {
-      console.log(req.socket.remoteAddress);
+      console.log(req.headers);
+      console.log(req.ip);
       const restaurantCol = await MongoDB.getCollection("restaurant");
       // TODO : mongodb project을 사용해서 lat,lng데이터만 쿼리
       const getData = await restaurantCol
