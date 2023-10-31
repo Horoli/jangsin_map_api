@@ -228,6 +228,12 @@ module.exports = {
       console.log("step 4");
       console.log(geocodingResult);
 
+      /* 
+
+      입력받은 csv를 map으로 변환하는 함수
+      
+      */
+
       async function dataConvert() {
         // TODO : csv header 추출
         const csvHeader = csv[0];
@@ -256,6 +262,12 @@ module.exports = {
 
         return restaurantObjectArrays;
       }
+
+      /* 
+
+      변환한 csv 데이터에서 중복을 제거하는 함수
+
+      */
 
       async function dataFiltering(inputRestaurants) {
         // label이 없는 데이터 제거
@@ -293,6 +305,15 @@ module.exports = {
         return finalFilteredData;
       }
 
+
+      /* 
+
+        변환한 csv 데이터에서 썸네일 이미지 url을 get하여
+        sharp를 통해 size를 조정한 뒤
+        base64로 변환하여 저장하는 함수
+
+      */
+
       async function getThumbnailByUrl(inputRestaurants) {
         const getRestaurants = await Promise.all(
           inputRestaurants.map(async (innerRestaurant) => {
@@ -318,6 +339,13 @@ module.exports = {
         );
         return getRestaurants;
       }
+
+      /*
+
+      naverMapApi 중 geocoding에 입력받은 도로명 주소를 변환하여 보내고
+      위도, 경도, 지번주소를 받아오는 함수
+
+      */
 
       async function getGeocodingData(inputRestaurants) {
         let completeCount = 0;
@@ -444,6 +472,15 @@ module.exports = {
       };
     },
   },
+
+
+  /*
+
+    기존에 입력한 데이터를 수정하는 patch
+
+  */
+
+
 
   "POST /patch": {
     middlewares: ["auth"],
@@ -674,6 +711,7 @@ module.exports = {
     가게출처(source)로 필터링하는 쿼리 추가
     :source:menu
   */
+
   "GET /pagination/:page:limit:sido:sigungu": {
     middlewares: ["app"],
     async handler(req, res) {
@@ -811,6 +849,15 @@ module.exports = {
       };
     },
   },
+
+  /*
+
+  map app이 최초 실행됐을때, naverMap에 marker를 추가하기 위한
+  최소 요구값(lat,lng)을 return해주는 함수
+  typeof : number(37.1234984, 126.3334443)
+
+  */
+
 
   "GET /latlng": {
     middlewares: ["app"],
