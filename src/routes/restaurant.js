@@ -317,6 +317,12 @@ module.exports = {
       async function getThumbnailByUrl(inputRestaurants) {
         const getRestaurants = await Promise.all(
           inputRestaurants.map(async (innerRestaurant) => {
+            // TODO : thumbnail === undefined || thumbnail === "" 일 경우
+            if (innerRestaurant.thumbnail === undefined || innerRestaurant.thumbnail === "") {
+              console.log('thumbnail is undefined or empty');
+              return;
+            }
+
             const getImage = await Axios.get(innerRestaurant.thumbnail, {
               responseType: "stream",
             });
@@ -885,7 +891,7 @@ module.exports = {
   */
 
   "GET /district/:sido": {
-    // middlewares: ["app"],
+    middlewares: ["app"],
     async handler(req, res) {
       const sido = req.query.sido;
       console.log(sido);
