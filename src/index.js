@@ -82,6 +82,7 @@ class WebServer {
     this.$webServer.register(Cors, { origin: "*" });
 
     this.$webServer.listen({
+      trustProxy: true,
       host: this.$opts.host,
       port: this.$opts.port,
     });
