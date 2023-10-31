@@ -1,9 +1,11 @@
-const Path = require("path");
-const Fs = require("fs");
+// const Path = require("path");
+// const Fs = require("fs");
 const MongoDB = require("../mongodb");
 const Utility = require("../utility");
 const Axios = require("axios");
 const sharp = require("sharp");
+const Bcrypt = require("bcrypt");
+const Crypto = require("crypto");
 
 module.exports = {
   "POST /create": {
@@ -870,9 +872,36 @@ module.exports = {
   "GET /latlng": {
     middlewares: ["app"],
     async handler(req, res) {
-      console.log(req.headers);
-      console.log(req.ip);
+      const visitorCol = await MongoDB.getCollection("visitorCount");
       const restaurantCol = await MongoDB.getCollection("restaurant");
+
+      /*
+
+      ip를 hash해서 저장 후, 방문자 관련 정보를 저장
+
+      */
+
+      const hash = Crypto.createHash("sha256").update(req.ip);
+      const hashedIp = hash.digest("hex");
+      const now = Date.now();
+      const ipFindResult = await visitorCol
+        .find({ ip: hashedIp })
+        .sort({ _id: -1 })
+        .limit(1)
+        .toArray();
+
+      if (ipFindResult.length === 0) {
+        await visitorCol.insertOne({ ip: hashedIp, visited_at: now });
+      }
+
+      if (ipFindResult.length === 1) {
+        const afterVisitedAt = ipFindResult[0].visited_at;
+        const expirationPeriod = afterVisitedAt + 24 * 60 * 60 * 1000; // 24시간
+        if (now > expirationPeriod) {
+          await visitorCol.insertOne({ ip: hashedIp, visited_at: now });
+        }
+      }
+
       // TODO : mongodb project을 사용해서 lat,lng데이터만 쿼리
       const getData = await restaurantCol
         .find()

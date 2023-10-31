@@ -43,7 +43,7 @@ class MongoDB {
       .listCollections()
       .toArray();
 
-    if (getCollectionsList.length === 0) {
+    if (!getCollectionsList.some((collection) => collection.name === name)) {
       console.log(`getCollectionsList ${name} is undefined`);
       console.log("getCollectionsList", getCollectionsList);
       await this.getDatabase().createCollection(name);
