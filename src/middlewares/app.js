@@ -4,7 +4,7 @@ const Utility = require("../utility");
 
 module.exports = async (req, rep) => {
   const client_key = req.headers["client-key"];
-  // console.log(req.headers);
+  // console.log(req.socket.remoteAddress);
 
   // console.log('client-key', client_key);
   if (client_key === undefined) {

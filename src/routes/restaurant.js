@@ -223,7 +223,6 @@ module.exports = {
 
       const finalRestaurants = await getThumbnailByUrl([...filteredData]);
 
-
       console.log("step 3");
       const geocodingResult = await getGeocodingData(finalRestaurants);
       console.log("step 4");
@@ -306,7 +305,6 @@ module.exports = {
         return finalFilteredData;
       }
 
-
       /* 
 
         변환한 csv 데이터에서 썸네일 이미지 url을 get하여
@@ -319,9 +317,12 @@ module.exports = {
         const getRestaurants = await Promise.all(
           inputRestaurants.map(async (innerRestaurant) => {
             // TODO : thumbnail === undefined || thumbnail === "" 일 경우
-            if (innerRestaurant.thumbnail === undefined || innerRestaurant.thumbnail === "") {
-              console.log('thumbnail is undefined or empty');
-              console.log('innerRestaurant', innerRestaurant);
+            if (
+              innerRestaurant.thumbnail === undefined ||
+              innerRestaurant.thumbnail === ""
+            ) {
+              console.log("thumbnail is undefined or empty");
+              console.log("innerRestaurant", innerRestaurant);
 
               return innerRestaurant;
             }
@@ -362,7 +363,7 @@ module.exports = {
 
         await Promise.all(
           inputRestaurants.map(async (restaurant) => {
-            console.log('restaurant', restaurant);
+            console.log("restaurant", restaurant);
             const address = encodeURIComponent(restaurant.address_street);
             console.log("restaurant.address_street", restaurant.address_street);
 
@@ -483,14 +484,11 @@ module.exports = {
     },
   },
 
-
   /*
 
     기존에 입력한 데이터를 수정하는 patch
 
   */
-
-
 
   "POST /patch": {
     middlewares: ["auth"],
@@ -869,10 +867,10 @@ module.exports = {
 
   */
 
-
   "GET /latlng": {
     middlewares: ["app"],
     async handler(req, res) {
+      console.log(req.socket.remoteAddress);
       const restaurantCol = await MongoDB.getCollection("restaurant");
       // TODO : mongodb project을 사용해서 lat,lng데이터만 쿼리
       const getData = await restaurantCol
