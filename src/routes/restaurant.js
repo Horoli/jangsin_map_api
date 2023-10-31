@@ -717,9 +717,10 @@ module.exports = {
 
   /* 
   TODO : 
+    가게명(label)로 필터링하는 쿼리 추가
     대표메뉴(representative_menu)로 필터링하는 쿼리 추가
     가게출처(source)로 필터링하는 쿼리 추가
-    :source:menu
+    :label:source:menu
   */
 
   "GET /pagination/:page:limit:sido:sigungu": {
