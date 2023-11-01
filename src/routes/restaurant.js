@@ -744,8 +744,6 @@ module.exports = {
         return Utility.ERROR(req.raw.url, "source is empty", 400);
       }
 
-      console.log("source", source);
-
       const startIndex = (selectedPage - 1) * limit;
 
       /*
@@ -932,7 +930,7 @@ module.exports = {
     middlewares: ["app"],
     async handler(req, res) {
       const sido = req.query.sido;
-      console.log('district', sido);
+      console.log("district", sido);
       const restaurantCol = await MongoDB.getCollection("restaurant");
 
       const getDistrictSido = await restaurantCol.distinct("address_sido");
