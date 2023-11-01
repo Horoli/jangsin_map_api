@@ -717,20 +717,20 @@ module.exports = {
 
   /* 
   TODO : 
-    가게명(label)로 필터링하는 쿼리 추가
-    대표메뉴(representative_menu)로 필터링하는 쿼리 추가
-    가게출처(source)로 필터링하는 쿼리 추가
+    가게명(label)로 필터링하는 쿼리 추가 
+    대표메뉴(representative_menu)로 필터링하는 쿼리 추가 // 취소
+    가게출처(source)로 필터링하는 쿼리 추가 
     :label:source:menu
   */
 
-  "GET /pagination/:page:limit:sido:sigungu": {
+  "GET /pagination/:page:limit:sido:sigungu:source": {
     middlewares: ["app"],
     async handler(req, res) {
       const selectedPage = parseInt(req.query.page);
       const limit = parseInt(req.query.limit);
       const sido = req.query.sido;
       const sigungu = req.query.sigungu;
-      // const source = req.query.source;
+      const source = req.query.source;
       // const menu = req.query.menu;
       const restaurantCol = await MongoDB.getCollection("restaurant");
       const totalCount = await restaurantCol.count();
@@ -739,8 +739,12 @@ module.exports = {
         console.log(totalCount);
         return Utility.ERROR(req.raw.url, "restaurantCol is empty", 400);
       }
-      // console.log("menu", menu);
-      // console.log("source", source);
+
+      if (source === undefined || source === null) {
+        return Utility.ERROR(req.raw.url, "source is empty", 400);
+      }
+
+      console.log("source", source);
 
       const startIndex = (selectedPage - 1) * limit;
 
@@ -752,7 +756,11 @@ module.exports = {
 
       if (sido !== undefined && sigungu !== undefined) {
         const sigunguQueryData = await restaurantCol
-          .find({ address_sido: sido, address_sigungu: sigungu })
+          .find({
+            source: source,
+            address_sido: sido,
+            address_sigungu: sigungu,
+          })
           .skip(startIndex)
           .limit(limit)
           .toArray();
@@ -760,6 +768,7 @@ module.exports = {
         const queryCount = await restaurantCol.count({
           address_sido: sido,
           address_sigungu: sigungu,
+          source: source,
         });
         const totalQueryPage = Math.ceil(queryCount / limit);
         return {
@@ -783,12 +792,15 @@ module.exports = {
 
       if (sido !== undefined) {
         const queryData = await restaurantCol
-          .find({ address_sido: sido })
+          .find({ source: source, address_sido: sido })
           .skip(startIndex)
           .limit(limit)
           .toArray();
 
-        const queryCount = await restaurantCol.count({ address_sido: sido });
+        const queryCount = await restaurantCol.count({
+          source: source,
+          address_sido: sido,
+        });
         const totalQueryPage = Math.ceil(queryCount / limit);
 
         return {
@@ -804,13 +816,13 @@ module.exports = {
         };
       }
 
-      const totalDataCount = await restaurantCol.count();
+      const totalDataCount = await restaurantCol.count({ source: source });
       const totalPage = Math.ceil(totalDataCount / limit);
 
       if (selectedPage > totalPage)
         return Utility.ERROR(req.raw.url, "page is over", 400);
       const getPagination = await restaurantCol
-        .find()
+        .find({ source: source })
         .skip(startIndex)
         .limit(limit)
         .toArray();
@@ -883,23 +895,16 @@ module.exports = {
 
       const hash = Crypto.createHash("sha256").update(req.ip);
       const hashedIp = hash.digest("hex");
-      const now = Date.now();
-      const ipFindResult = await visitorCol
-        .find({ ip: hashedIp })
-        .sort({ _id: -1 })
-        .limit(1)
-        .toArray();
 
-      if (ipFindResult.length === 0) {
-        await visitorCol.insertOne({ ip: hashedIp, visited_at: now });
-      }
+      const ipFindResult = await visitorCol.findOne({
+        ip: hashedIp,
+        visited_at: {
+          $gte: Date.now() - 1000 * 60 * 60 * 24,
+        },
+      });
 
-      if (ipFindResult.length === 1) {
-        const afterVisitedAt = ipFindResult[0].visited_at;
-        const expirationPeriod = afterVisitedAt + 24 * 60 * 60 * 1000; // 24시간
-        if (now > expirationPeriod) {
-          await visitorCol.insertOne({ ip: hashedIp, visited_at: now });
-        }
+      if (ipFindResult === null) {
+        await visitorCol.insertOne({ ip: hashedIp, visited_at: Date.now() });
       }
 
       // TODO : mongodb project을 사용해서 lat,lng데이터만 쿼리
