@@ -926,19 +926,25 @@ module.exports = {
 
   */
 
-  "GET /district/:sido": {
+  "GET /district/:sido:source": {
     middlewares: ["app"],
     async handler(req, res) {
       const sido = req.query.sido;
+      const source = req.query.source;
       console.log("district", sido);
       const restaurantCol = await MongoDB.getCollection("restaurant");
 
-      const getDistrictSido = await restaurantCol.distinct("address_sido");
+      const getDistrictSido = await restaurantCol.distinct("address_sido", {
+        source: source,
+      });
 
       if (sido !== null && sido !== undefined) {
         const getDistrictSigungu = await restaurantCol.distinct(
           "address_sigungu",
-          { address_sido: sido }
+          {
+            source: source,
+            address_sido: sido,
+          }
         );
         return {
           statusCode: 200,
