@@ -932,12 +932,12 @@ module.exports = {
     middlewares: ["app"],
     async handler(req, res) {
       const sido = req.query.sido;
-      console.log(sido);
+      console.log('district', sido);
       const restaurantCol = await MongoDB.getCollection("restaurant");
 
       const getDistrictSido = await restaurantCol.distinct("address_sido");
 
-      if (sido != null) {
+      if (sido !== null && sido !== undefined) {
         const getDistrictSigungu = await restaurantCol.distinct(
           "address_sigungu",
           { address_sido: sido }
