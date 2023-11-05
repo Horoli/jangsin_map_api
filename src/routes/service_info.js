@@ -5,12 +5,10 @@ module.exports = {
   "GET /visitor": {
     async handler(req, res) {
       const visitorCol = await MongoDB.getCollection("visitorCount");
-
       const count = await visitorCol.count();
-
       return {
         statusCode: 200,
-        data: count,
+        message: `전체 방문자 수 : ${count}`,
       };
     },
   },
