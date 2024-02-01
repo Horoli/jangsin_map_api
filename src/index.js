@@ -36,19 +36,36 @@ class WebServer {
       db: dbName,
     });
   }
-
   $_initRoutes() {
     const routesPath = Path.join(__dirname, "./routes");
-    const routeFiles = Fs.readdirSync(routesPath);
+    this._loadRoutes(routesPath);
+  }
 
-    for (const filename of routeFiles) {
-      const routePath = Path.join(routesPath, filename);
-      const routes = require(routePath);
+  _loadRoutes(filePath) {
 
-      for (const routeEndPoint of Object.keys(routes)) {
-        const routeDef = routes[routeEndPoint];
-        const [method, path] = routeEndPoint.split(" ");
-        // TODO : preHandler 가추가
+    // 해당 path의 파일이 directory인지 확인
+    const isDirectory = Fs.lstatSync(filePath).isDirectory();
+
+    if (isDirectory) {
+      // directory이면 해당 directory의 파일들을 가져옴
+      const subFiles = Fs.readdirSync(filePath);
+
+      for (const filename of subFiles) {
+
+        const subFilePath = Path.join(filePath, filename);
+
+        // 함수 본인을 재실행함
+        this._loadRoutes(subFilePath);
+      }
+    } else {
+      // 폴더가 아니면 endpoint를 가져오는 로직
+      const routes = require(filePath);
+
+      for (const routeEndpoint of Object.keys(routes)) {
+        const routeDef = routes[routeEndpoint];
+        const [method, path] = routeEndpoint.split(" ");
+        console.log('path', path);
+
         const options = {
           preHandler: async (req, rep, done) => {
             const middlewares = routeDef.middlewares ?? [];
@@ -56,28 +73,40 @@ class WebServer {
             for (const middlewareName of middlewares) {
               if (middlewareName in this.$middlewares) {
                 const middleware = this.$middlewares[middlewareName];
-
-                const middlewareResult = await middleware(req, rep);
-                if (middlewareResult instanceof Error) {
-                  return done(middlewareResult);
+                if (middleware) {
+                  const middlewareResult = await middleware(req, rep);
+                  if (middlewareResult instanceof Error) {
+                    return done(middlewareResult);
+                  }
                 }
               }
             }
-          },
-        };
+          }
+        }
 
-        // route 내에 저장된 파일 명이 path가 되게 설정
-        const getFileName = filename.replaceAll(".js", "");
-        const finalPath = `/${getFileName}${path}`;
 
-        this.$webServer[method.toLowerCase()](
-          finalPath,
-          options,
-          routeDef.handler
-        );
+        const routesIndex = filePath.indexOf('routes\\');
+        const getPath = filePath.substring(routesIndex + 7);
+
+        const versionCheck = getPath.indexOf('\\');
+
+        if (versionCheck === -1) {
+          const endpoint = `/${fileRoutePath}${path}`;
+          this.$webServer[method.toLowerCase()](endpoint, options, routeDef.handler);
+        }
+
+        if (versionCheck !== -1) {
+          const fileRoutePath = getPath.slice(0, -3);
+          const splitFileRoutePath = fileRoutePath.split('\\');
+          const endpoint = '/' + splitFileRoutePath.join('/') + path;
+          console.log('splitFileRoutePath', splitFileRoutePath)
+          console.log(endpoint);
+          this.$webServer[method.toLowerCase()](endpoint, options, routeDef.handler);
+        }
       }
     }
   }
+
 
   start() {
     // TODO : add cors

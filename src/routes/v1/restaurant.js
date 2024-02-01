@@ -1,7 +1,7 @@
 // const Path = require("path");
 // const Fs = require("fs");
-const MongoDB = require("../mongodb");
-const Utility = require("../utility");
+const MongoDB = require("../../mongodb");
+const Utility = require("../../utility");
 const Axios = require("axios");
 const sharp = require("sharp");
 const Bcrypt = require("bcrypt");
@@ -33,6 +33,7 @@ module.exports = {
         youtube_link,
         baemin_link,
       } = req.body;
+
 
       let { thumbnail, add_thumbnail } = req.body;
 
@@ -230,10 +231,10 @@ module.exports = {
       console.log("step 4");
       console.log(geocodingResult);
 
-      /* 
+      /*
 
       입력받은 csv를 map으로 변환하는 함수
-      
+
       */
 
       async function dataConvert() {
@@ -265,7 +266,7 @@ module.exports = {
         return restaurantObjectArrays;
       }
 
-      /* 
+      /*
 
       변환한 csv 데이터에서 중복을 제거하는 함수
 
@@ -307,7 +308,7 @@ module.exports = {
         return finalFilteredData;
       }
 
-      /* 
+      /*
 
         변환한 csv 데이터에서 썸네일 이미지 url을 get하여
         sharp를 통해 size를 조정한 뒤
@@ -705,6 +706,7 @@ module.exports = {
 
   "GET /get": {
     middlewares: ["app"],
+    // middlewares: [],
     async handler(req, res) {
       const jangsinCol = await MongoDB.getCollection("restaurant");
       const getData = await jangsinCol.find().toArray();
@@ -715,11 +717,11 @@ module.exports = {
     },
   },
 
-  /* 
-  TODO : 
-    가게명(label)로 필터링하는 쿼리 추가 
+  /*
+  TODO :
+    가게명(label)로 필터링하는 쿼리 추가
     대표메뉴(representative_menu)로 필터링하는 쿼리 추가 // 취소
-    가게출처(source)로 필터링하는 쿼리 추가 
+    가게출처(source)로 필터링하는 쿼리 추가
     :label:source:menu
   */
 
