@@ -8,7 +8,7 @@ const Bcrypt = require("bcrypt");
 const Crypto = require("crypto");
 
 module.exports = {
-  "POST /create": {
+  "POST /": {
     middlewares: ["auth"],
     async handler(req, res) {
       const {
@@ -196,7 +196,7 @@ module.exports = {
     },
   },
 
-  "POST /create_csv_upload": {
+  "POST /csv": {
     middlewares: ["auth"],
     async handler(req, res) {
       const { csv } = req.body;
@@ -493,7 +493,7 @@ module.exports = {
 
   */
 
-  "POST /patch": {
+  "PATCH /": {
     middlewares: ["auth"],
     async handler(req, res) {
       const {
@@ -704,7 +704,7 @@ module.exports = {
     },
   },
 
-  "GET /get": {
+  "GET /": {
     middlewares: ["app"],
     // middlewares: [],
     async handler(req, res) {
@@ -841,7 +841,7 @@ module.exports = {
     },
   },
 
-  "DELETE /delete": {
+  "DELETE /": {
     middlewares: ["auth"],
     async handler(req, res) {
       const { id } = req.body;
@@ -965,49 +965,4 @@ module.exports = {
       };
     },
   },
-
-  // "POST /test": {
-  //   async handler(req, res) {
-  //     const { url } = req.body;
-  //     console.log(url);
-
-  //     try {
-  //       async function getContents(url) {
-  //         const browser = await puppeteer.launch(
-  //           { headless: "new" }
-  //         );
-  //         const page = await browser.newPage();
-  //         await page.goto(url);
-
-  //         // 웹사이트가 모든 동적 콘텐츠를 로드할 때까지 기다립니다.
-  //         await page.waitForSelector('div.sc-48msce.bcmMFw');
-
-  //         // 웹사이트에서 동적 콘텐츠를 가져옵니다.
-  //         const content = await page.evaluate(() => {
-  //           return document.querySelector('div.sc-48msce.bcmMFw').innerHTML;
-  //         });
-
-  //         await browser.close();
-  //         return content;
-  //       }
-
-  //       const asd = await getContents(url)
-  //       const $ = cheerio.load(asd);
-
-  //       const src = $('iframe#searchIframe').attr('src');
-  //       console.log('src', src);
-
-  //       const zxc = await Axios.get(src)
-  //       console.log(
-
-  //         zxc.data
-  //       )
-
-  //       return {};
-
-  //     } catch {
-  //       return {};
-  //     }
-
-  //   }
 };
