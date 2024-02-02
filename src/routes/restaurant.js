@@ -1,7 +1,7 @@
 // const Path = require("path");
 // const Fs = require("fs");
-const MongoDB = require("../mongodb");
-const Utility = require("../utility");
+const Utility = require("@Utility/utility");
+const MongoDB = require("@Utility/mongodb");
 const Axios = require("axios");
 const sharp = require("sharp");
 const Bcrypt = require("bcrypt");

@@ -1,5 +1,5 @@
-const MongoDB = require("../mongodb");
-const Utility = require("../utility");
+const Utility = require("@Utility/utility");
+const MongoDB = require("@Utility/mongodb");
 
 module.exports = {
   "POST /thumbnail": {

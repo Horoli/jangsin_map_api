@@ -1,8 +1,8 @@
 const Path = require("path");
 const Fs = require("fs");
-const MongoDB = require("../mongodb");
 const Bcrypt = require("bcrypt");
-const Utility = require("../utility");
+const Utility = require("@Utility/utility");
+const MongoDB = require("@Utility/mongodb");
 
 module.exports = {
   "POST /sign_up": {

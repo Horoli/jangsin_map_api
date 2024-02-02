@@ -2,7 +2,7 @@ const Fastify = require("fastify");
 const Fs = require("fs");
 const Path = require("path");
 const Cors = require("@fastify/cors");
-const MongoDB = require("./mongodb");
+const MongoDB = require("../utility/mongodb");
 
 class WebServer {
   constructor(opts = {}) {
@@ -64,7 +64,6 @@ class WebServer {
       for (const routeEndpoint of Object.keys(routes)) {
         const routeDef = routes[routeEndpoint];
         const [method, path] = routeEndpoint.split(" ");
-        console.log('path', path);
 
         const options = {
           preHandler: async (req, rep, done) => {
@@ -89,6 +88,7 @@ class WebServer {
         const getPath = filePath.substring(routesIndex + 7);
 
         const versionCheck = getPath.indexOf('\\');
+        const fileRoutePath = getPath.slice(0, -3);
 
         if (versionCheck === -1) {
           const endpoint = `/${fileRoutePath}${path}`;
@@ -96,11 +96,8 @@ class WebServer {
         }
 
         if (versionCheck !== -1) {
-          const fileRoutePath = getPath.slice(0, -3);
           const splitFileRoutePath = fileRoutePath.split('\\');
           const endpoint = '/' + splitFileRoutePath.join('/') + path;
-          console.log('splitFileRoutePath', splitFileRoutePath)
-          console.log(endpoint);
           this.$webServer[method.toLowerCase()](endpoint, options, routeDef.handler);
         }
       }

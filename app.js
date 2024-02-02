@@ -1,3 +1,4 @@
+require("better-module-alias")(__dirname);
 const WebServer = require("./src");
 
 const server = new WebServer({

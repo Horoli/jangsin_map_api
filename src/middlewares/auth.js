@@ -1,5 +1,5 @@
-const MongoDB = require("../mongodb");
-const Utility = require("../utility");
+const MongoDB = require("../../utility/mongodb");
+const Utility = require("../../utility/utility");
 
 module.exports = async (req, rep) => {
   const { token } = req.headers;

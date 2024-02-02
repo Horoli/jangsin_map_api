@@ -1,6 +1,6 @@
-const MongoDB = require("../mongodb");
+const MongoDB = require("../../utility/mongodb");
 const Bcrypt = require("bcrypt");
-const Utility = require("../utility");
+const Utility = require("../../utility/utility");
 
 module.exports = async (req, rep) => {
   const client_key = req.headers["client-key"];
