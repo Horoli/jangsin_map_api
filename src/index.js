@@ -44,6 +44,7 @@ class WebServer {
   _loadRoutes(filePath) {
     // 해당 path의 파일이 directory인지 확인
     const isDirectory = Fs.lstatSync(filePath).isDirectory();
+    console.log(isDirectory);
 
     if (isDirectory) {
       // directory이면 해당 directory의 파일들을 가져옴
@@ -81,10 +82,10 @@ class WebServer {
           },
         };
 
-        const routesIndex = filePath.indexOf("routes/");
+        const routesIndex = filePath.indexOf(`routes${Path.sep}`);
         const getPath = filePath.substring(routesIndex + 7);
 
-        const versionCheck = getPath.indexOf("/");
+        const versionCheck = getPath.indexOf(Path.sep);
         const fileRoutePath = getPath.slice(0, -3);
 
         if (versionCheck === -1) {
@@ -97,7 +98,7 @@ class WebServer {
         }
 
         if (versionCheck !== -1) {
-          const splitFileRoutePath = fileRoutePath.split("\\");
+          const splitFileRoutePath = fileRoutePath.split(Path.sep);
           const endpoint = "/" + splitFileRoutePath.join("/") + path;
           this.$webServer[method.toLowerCase()](
             endpoint,
