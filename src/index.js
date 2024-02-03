@@ -42,7 +42,6 @@ class WebServer {
   }
 
   _loadRoutes(filePath) {
-
     // 해당 path의 파일이 directory인지 확인
     const isDirectory = Fs.lstatSync(filePath).isDirectory();
 
@@ -51,7 +50,6 @@ class WebServer {
       const subFiles = Fs.readdirSync(filePath);
 
       for (const filename of subFiles) {
-
         const subFilePath = Path.join(filePath, filename);
 
         // 함수 본인을 재실행함
@@ -80,30 +78,36 @@ class WebServer {
                 }
               }
             }
-          }
-        }
+          },
+        };
 
-
-        const routesIndex = filePath.indexOf('routes\\');
+        const routesIndex = filePath.indexOf("routes/");
         const getPath = filePath.substring(routesIndex + 7);
 
-        const versionCheck = getPath.indexOf('\\');
+        const versionCheck = getPath.indexOf("/");
         const fileRoutePath = getPath.slice(0, -3);
 
         if (versionCheck === -1) {
           const endpoint = `/${fileRoutePath}${path}`;
-          this.$webServer[method.toLowerCase()](endpoint, options, routeDef.handler);
+          this.$webServer[method.toLowerCase()](
+            endpoint,
+            options,
+            routeDef.handler
+          );
         }
 
         if (versionCheck !== -1) {
-          const splitFileRoutePath = fileRoutePath.split('\\');
-          const endpoint = '/' + splitFileRoutePath.join('/') + path;
-          this.$webServer[method.toLowerCase()](endpoint, options, routeDef.handler);
+          const splitFileRoutePath = fileRoutePath.split("\\");
+          const endpoint = "/" + splitFileRoutePath.join("/") + path;
+          this.$webServer[method.toLowerCase()](
+            endpoint,
+            options,
+            routeDef.handler
+          );
         }
       }
     }
   }
-
 
   start() {
     // TODO : add cors

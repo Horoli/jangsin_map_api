@@ -724,7 +724,7 @@ module.exports = {
     :label:source:menu
   */
 
-  "GET /pagination:page:limit:sido:sigungu:source": {
+  "GET /pagination/:page:limit:sido:sigungu:source": {
     middlewares: ["app"],
     async handler(req, res) {
       const selectedPage = parseInt(req.query.page);
