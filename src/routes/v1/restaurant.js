@@ -34,7 +34,6 @@ module.exports = {
         baemin_link,
       } = req.body;
 
-
       let { thumbnail, add_thumbnail } = req.body;
 
       // TODO : id가 입력되었으면 에러처리
@@ -725,7 +724,7 @@ module.exports = {
     :label:source:menu
   */
 
-  "GET /pagination/:page:limit:sido:sigungu:source": {
+  "GET /pagination:page:limit:sido:sigungu:source": {
     middlewares: ["app"],
     async handler(req, res) {
       const selectedPage = parseInt(req.query.page);
