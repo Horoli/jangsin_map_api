@@ -43,4 +43,88 @@ module.exports = {
       };
     },
   },
+
+  "GET /mau": {
+    middlewares: [],
+    async handler(req, res) {
+      const visitorCol = await MongoDB.getCollection("visitorCount");
+
+      const startDateString = "2023-11-01T00:00:00.000Z";
+      const startDate = new Date(Date.parse(startDateString));
+      const now = new Date();
+
+      // 시작일로 부터 현재일까지 년-월 리스트를 추출
+      let monthList = [];
+      let currentDate = startDate;
+      while (currentDate <= now) {
+        monthList.push(
+          `${currentDate.getUTCFullYear()}-${currentDate.getUTCMonth() + 1}`
+        );
+        currentDate = new Date(
+          Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1)
+        );
+      }
+
+      console.log(monthList);
+
+      // DB에 저장된 visited_at과 비교하기 위해 milisecond로 parse
+      let totalMAU = 0;
+      let total = 0;
+
+      const getMAUByMonth = await Promise.all(
+        monthList.map(async (month) => {
+          let result = {};
+          const getIndex = monthList.indexOf(month);
+          const lastIndex = monthList.length - 1;
+
+          const targetMonth = Date.parse(month);
+
+          console.log(targetMonth);
+
+          if (getIndex != lastIndex) {
+            const getFilteringDataByVisitedAt = await visitorCol
+              .find({
+                visited_at: {
+                  $gte: targetMonth,
+                  $lte: Date.parse(monthList[getIndex + 1]),
+                },
+              })
+              .toArray();
+
+            // ip를 기준으로 중복데이터 제거
+            const uniqueResults = getFilteringDataByVisitedAt.filter(
+              (value, index, array) =>
+                array.findIndex((target) => target.ip === value.ip) === index
+            );
+
+            total += getFilteringDataByVisitedAt.length;
+            totalMAU += uniqueResults.length;
+
+            result[monthList[getIndex]] = {
+              total: getFilteringDataByVisitedAt.length,
+              MAU: uniqueResults.length,
+            };
+            return result;
+          }
+        })
+      );
+
+      const removeNullGetMAUByMonth = getMAUByMonth.filter((e) => {
+        return e !== undefined;
+      });
+
+      const average = {
+        total: (total / removeNullGetMAUByMonth.length).toFixed(2),
+        mau: (totalMAU / removeNullGetMAUByMonth.length).toFixed(2),
+      };
+
+      return {
+        statusCode: 200,
+        data: {
+          average: average,
+          monthly: removeNullGetMAUByMonth,
+        },
+      };
+    },
+  },
 };

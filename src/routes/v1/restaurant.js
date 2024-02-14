@@ -35,7 +35,6 @@ module.exports = {
         baemin_link,
       } = req.body;
 
-
       let { thumbnail, add_thumbnail } = req.body;
 
       // TODO : id가 입력되었으면 에러처리
