@@ -44,7 +44,6 @@ class WebServer {
   _loadRoutes(filePath) {
     // 해당 path의 파일이 directory인지 확인
     const isDirectory = Fs.lstatSync(filePath).isDirectory();
-    console.log(isDirectory);
 
     if (isDirectory) {
       // directory이면 해당 directory의 파일들을 가져옴
