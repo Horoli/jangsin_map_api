@@ -1,4 +1,8 @@
 class CSVManagement{
+
+    /*
+    입력받은 csv를 map으로 변환하는 함수
+    */
     static async convert(csv) {
         const csvHeader = csv[0];
         // header를 제거하기 위해 copyCsv를 생성
@@ -27,6 +31,9 @@ class CSVManagement{
         return restaurantObjectArrays;
     }
 
+      /*
+      변환한 csv 데이터에서 중복을 제거하는 함수
+      */
      static async filtering(inputRestaurants) {
         // label이 없는 데이터 제거
         let extractedData = inputRestaurants.filter(
@@ -63,6 +70,11 @@ class CSVManagement{
         return finalFilteredData;
       }
 
+      /*
+        변환한 csv 데이터에서 썸네일 이미지 url을 get하여
+        sharp를 통해 size를 조정한 뒤
+        base64로 변환하여 저장하는 함수
+      */
       static async getThumbnailByUrl(inputRestaurants) {
         const getRestaurants = await Promise.all(
           inputRestaurants.map(async (innerRestaurant) => {

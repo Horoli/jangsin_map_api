@@ -2,11 +2,11 @@
 // const Fs = require("fs");
 const Utility = require("@Utility/utility");
 const MongoDB = require("@Utility/mongodb");
+const CSVManagement = require("@Utility/csv_management");
 const Axios = require("axios");
 const sharp = require("sharp");
 const Bcrypt = require("bcrypt");
 const Crypto = require("crypto");
-const CSVManagement = require("@Utility/csv_management");
 
 module.exports = {
   "POST /": {
@@ -184,7 +184,7 @@ module.exports = {
             data: {},
           };
         } else {
-          return Utility.EEROR(
+          return Utility.ERROR(
             req.raw.url,
             `geocoding failed :  + ${response.data.status}`,
             400
@@ -237,81 +237,76 @@ module.exports = {
       console.log(geocodingResult);
 
       /*
-
       입력받은 csv를 map으로 변환하는 함수
-
       */
+      // async function dataConvert() {
+      //   // TODO : csv header 추출
+      //   const csvHeader = csv[0];
+      //   // header를 제거하기 위해 copyCsv를 생성
+      //   const headlessCSV = csv.splice(1);
+      //   console.log("headlessCSV", headlessCSV.length);
 
-      async function dataConvert() {
-        // TODO : csv header 추출
-        const csvHeader = csv[0];
-        // header를 제거하기 위해 copyCsv를 생성
-        const headlessCSV = csv.splice(1);
-        console.log("headlessCSV", headlessCSV.length);
+      //   let restaurantObjectArrays = [];
 
-        let restaurantObjectArrays = [];
+      //   for (const csvIndex in headlessCSV) {
+      //     let individualRestaurantObject = {};
+      //     for (
+      //       let columnHeaderIndex = 0;
+      //       columnHeaderIndex < csvHeader.length;
+      //       columnHeaderIndex++
+      //     ) {
+      //       // int나 double이 들어오는 경우 에러가 발생함. 무조건 String으로 변환
+      //       // 앞 뒤 공백 제거 반드시 해줘야 함
+      //       individualRestaurantObject[csvHeader[columnHeaderIndex]] =
+      //         headlessCSV[csvIndex][columnHeaderIndex].toString().trim();
+      //     }
+      //     restaurantObjectArrays.push(individualRestaurantObject);
+      //   }
 
-        for (const csvIndex in headlessCSV) {
-          let individualRestaurantObject = {};
-          for (
-            let columnHeaderIndex = 0;
-            columnHeaderIndex < csvHeader.length;
-            columnHeaderIndex++
-          ) {
-            // int나 double이 들어오는 경우 에러가 발생함. 무조건 String으로 변환
-            // 앞 뒤 공백 제거 반드시 해줘야 함
-            individualRestaurantObject[csvHeader[columnHeaderIndex]] =
-              headlessCSV[csvIndex][columnHeaderIndex].toString().trim();
-          }
-          restaurantObjectArrays.push(individualRestaurantObject);
-        }
+      //   console.log("restaurantObjectArrays", restaurantObjectArrays.length);
 
-        console.log("restaurantObjectArrays", restaurantObjectArrays.length);
-
-        return restaurantObjectArrays;
-      }
+      //   return restaurantObjectArrays;
+      // }
 
       /*
-
       변환한 csv 데이터에서 중복을 제거하는 함수
-
       */
 
-      async function dataFiltering(inputRestaurants) {
-        // label이 없는 데이터 제거
-        let extractedData = inputRestaurants.filter(
-          (value) => value.label !== undefined
-        );
+      // async function dataFiltering(inputRestaurants) {
+      //   // label이 없는 데이터 제거
+      //   let extractedData = inputRestaurants.filter(
+      //     (value) => value.label !== undefined
+      //   );
 
-        // label이 중복되는 데이터를 제거하기 위해 Set을 사용
-        const labels = new Set();
+      //   // label이 중복되는 데이터를 제거하기 위해 Set을 사용
+      //   const labels = new Set();
 
-        // 중복되지 않는 데이터만 추출
-        extractedData = extractedData.filter((value) => {
-          if (!labels.has(value.label)) {
-            labels.add(value.label);
-            return true;
-          }
-          return false;
-        });
+      //   // 중복되지 않는 데이터만 추출
+      //   extractedData = extractedData.filter((value) => {
+      //     if (!labels.has(value.label)) {
+      //       labels.add(value.label);
+      //       return true;
+      //     }
+      //     return false;
+      //   });
 
-        // mongoDB에 저장된 데이터와 비교하여 중복되는 label들을 가져옴
-        const existingLabels = new Set(
-          (
-            await restaurantCol
-              .find({ label: { $in: Array.from(labels) } })
-              .toArray()
-          ).map((restaurant) => restaurant.label)
-        );
+      //   // mongoDB에 저장된 데이터와 비교하여 중복되는 label들을 가져옴
+      //   const existingLabels = new Set(
+      //     (
+      //       await restaurantCol
+      //         .find({ label: { $in: Array.from(labels) } })
+      //         .toArray()
+      //     ).map((restaurant) => restaurant.label)
+      //   );
 
-        const finalFilteredData = extractedData.filter(
-          (value) => !existingLabels.has(value.label)
-        );
+      //   const finalFilteredData = extractedData.filter(
+      //     (value) => !existingLabels.has(value.label)
+      //   );
 
-        console.log("finalFilteredData", finalFilteredData.length);
+      //   console.log("finalFilteredData", finalFilteredData.length);
 
-        return finalFilteredData;
-      }
+      //   return finalFilteredData;
+      // }
 
       /*
 
@@ -321,48 +316,47 @@ module.exports = {
 
       */
 
-      async function getThumbnailByUrl(inputRestaurants) {
-        const getRestaurants = await Promise.all(
-          inputRestaurants.map(async (innerRestaurant) => {
-            // TODO : thumbnail === undefined || thumbnail === "" 일 경우
-            if (
-              innerRestaurant.thumbnail === undefined ||
-              innerRestaurant.thumbnail === ""
-            ) {
-              console.log("thumbnail is undefined or empty");
-              console.log("innerRestaurant", innerRestaurant);
+      // async function getThumbnailByUrl(inputRestaurants) {
+      //   const getRestaurants = await Promise.all(
+      //     inputRestaurants.map(async (innerRestaurant) => {
+      //       // TODO : thumbnail === undefined || thumbnail === "" 일 경우
+      //       if (
+      //         innerRestaurant.thumbnail === undefined ||
+      //         innerRestaurant.thumbnail === ""
+      //       ) {
+      //         console.log("thumbnail is undefined or empty");
+      //         console.log("innerRestaurant", innerRestaurant);
 
-              return innerRestaurant;
-            }
+      //         return innerRestaurant;
+      //       }
 
-            const getImage = await Axios.get(innerRestaurant.thumbnail, {
-              responseType: "stream",
-            });
-            const imageType = "jpeg";
-            const sharpTransformer = sharp()
-              .resize(200, 200)
-              .toFormat(imageType);
-            const sharpImage = await getImage.data
-              .pipe(sharpTransformer)
-              .toBuffer()
-              .catch((err) => err);
+      //       const getImage = await Axios.get(innerRestaurant.thumbnail, {
+      //         responseType: "stream",
+      //       });
+      //       const imageType = "jpeg";
+      //       const sharpTransformer = sharp()
+      //         .resize(200, 200)
+      //         .toFormat(imageType);
+      //       const sharpImage = await getImage.data
+      //         .pipe(sharpTransformer)
+      //         .toBuffer()
+      //         .catch((err) => err);
 
-            const base64Image = sharpImage.toString("base64");
+      //       const base64Image = sharpImage.toString("base64");
 
-            let modifyingRestaurant = Object.assign(innerRestaurant);
-            modifyingRestaurant["thumbnail"] = base64Image;
+      //       let modifyingRestaurant = Object.assign(innerRestaurant);
+      //       modifyingRestaurant["thumbnail"] = base64Image;
 
-            return modifyingRestaurant;
-          })
-        );
-        return getRestaurants;
-      }
+      //       return modifyingRestaurant;
+      //     })
+      //   );
+      //   return getRestaurants;
+      // }
+
 
       /*
-
       naverMapApi 중 geocoding에 입력받은 도로명 주소를 변환하여 보내고
       위도, 경도, 지번주소를 받아오는 함수
-
       */
 
       async function getGeocodingData(inputRestaurants) {
@@ -491,12 +485,6 @@ module.exports = {
       };
     },
   },
-
-  /*
-
-    기존에 입력한 데이터를 수정하는 patch
-
-  */
 
   "PATCH /": {
     middlewares: ["auth"],
@@ -697,7 +685,7 @@ module.exports = {
             data: {},
           };
         } else {
-          return Utility.EEROR(
+          return Utility.ERROR(
             req.raw.url,
             `geocoding failed :  + ${response.data.status}`,
             400
