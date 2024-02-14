@@ -6,6 +6,7 @@ const Axios = require("axios");
 const sharp = require("sharp");
 const Bcrypt = require("bcrypt");
 const Crypto = require("crypto");
+const CSVManagement = require("@Utility/csv_management");
 
 module.exports = {
   "POST /": {
@@ -210,8 +211,12 @@ module.exports = {
       const imageCol = await MongoDB.getCollection("image");
 
       // csv로 입력받은 데이터를 저장할 array
-      const restaurantObjectArrays = await dataConvert();
-      const filteredData = await dataFiltering(restaurantObjectArrays);
+      // const restaurantObjectArrays = await dataConvert();
+      // const filteredData = await dataFiltering(restaurantObjectArrays);
+
+      const restaurantObjectArrays = await CSVManagement.convert(csv);
+      const filteredData = await CSVManagement.filtering(restaurantObjectArrays);
+
 
       console.log("dataConvert : ", filteredData.length);
 
@@ -224,7 +229,8 @@ module.exports = {
       }
       console.log("step 2");
 
-      const finalRestaurants = await getThumbnailByUrl([...filteredData]);
+      // const finalRestaurants = await getThumbnailByUrl([...filteredData]);
+      const finalRestaurants = await CSVManagement.getThumbnailByUrl([...filteredData]);
 
       console.log("step 3");
       const geocodingResult = await getGeocodingData(finalRestaurants);
