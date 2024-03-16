@@ -763,6 +763,8 @@ module.exports = {
           .limit(limit)
           .toArray();
 
+        console.log(sigunguQueryData);
+
         const queryCount = await restaurantCol.count({
           address_sido: sido,
           address_sigungu: sigungu,
