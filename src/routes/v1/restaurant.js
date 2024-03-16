@@ -760,9 +760,11 @@ module.exports = {
           .limit(limit)
           .toArray();
 
-        paginationData.forEach((e) => {
-          delete e._id;
-        });
+        await Promise.all(
+          paginationData.forEach((e) => {
+            delete e._id;
+          })
+        );
 
         const queryCount = await restaurantCol.count({
           address_sido: sido,
@@ -802,9 +804,11 @@ module.exports = {
         });
         const totalQueryPage = Math.ceil(queryCount / limit);
 
-        paginationData.forEach((e) => {
-          delete e._id;
-        });
+        await Promise.all(
+          paginationData.forEach((e) => {
+            delete e._id;
+          })
+        );
 
         return {
           statusCode: 200,
@@ -831,9 +835,11 @@ module.exports = {
         .limit(limit)
         .toArray();
 
-      paginationData.forEach((e) => {
-        delete e._id;
-      });
+      await Promise.all(
+        paginationData.forEach((e) => {
+          delete e._id;
+        })
+      );
 
       return {
         statusCode: 200,
