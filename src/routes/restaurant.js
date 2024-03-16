@@ -754,7 +754,10 @@ module.exports = {
       */
 
       const nullableSido = !sido ? null : sido;
+
       const nullableSigungu = !sigungu ? null : sigungu;
+      console.log(nullableSido);
+      console.log(nullableSigungu);
 
       const paginationData = await restaurantCol
         .find({
