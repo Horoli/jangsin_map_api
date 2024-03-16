@@ -214,8 +214,9 @@ module.exports = {
       // const filteredData = await dataFiltering(restaurantObjectArrays);
 
       const restaurantObjectArrays = await CSVManagement.convert(csv);
-      const filteredData = await CSVManagement.filtering(restaurantObjectArrays);
-
+      const filteredData = await CSVManagement.filtering(
+        restaurantObjectArrays
+      );
 
       console.log("dataConvert : ", filteredData.length);
 
@@ -229,7 +230,9 @@ module.exports = {
       console.log("step 2");
 
       // const finalRestaurants = await getThumbnailByUrl([...filteredData]);
-      const finalRestaurants = await CSVManagement.getThumbnailByUrl([...filteredData]);
+      const finalRestaurants = await CSVManagement.getThumbnailByUrl([
+        ...filteredData,
+      ]);
 
       console.log("step 3");
       const geocodingResult = await getGeocodingData(finalRestaurants);
@@ -352,7 +355,6 @@ module.exports = {
       //   );
       //   return getRestaurants;
       // }
-
 
       /*
       naverMapApi 중 geocoding에 입력받은 도로명 주소를 변환하여 보내고
@@ -747,6 +749,8 @@ module.exports = {
 
       */
 
+      const project = { _id: 0 };
+
       if (sido !== undefined && sigungu !== undefined) {
         const sigunguQueryData = await restaurantCol
           .find({
@@ -754,6 +758,7 @@ module.exports = {
             address_sido: sido,
             address_sigungu: sigungu,
           })
+          .project(project)
           .skip(startIndex)
           .limit(limit)
           .toArray();
@@ -786,6 +791,7 @@ module.exports = {
       if (sido !== undefined) {
         const queryData = await restaurantCol
           .find({ source: source, address_sido: sido })
+          .project(project)
           .skip(startIndex)
           .limit(limit)
           .toArray();
@@ -816,6 +822,7 @@ module.exports = {
         return Utility.ERROR(req.raw.url, "page is over", 400);
       const getPagination = await restaurantCol
         .find({ source: source })
+        .project(project)
         .skip(startIndex)
         .limit(limit)
         .toArray();
