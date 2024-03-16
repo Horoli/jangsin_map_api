@@ -802,6 +802,10 @@ module.exports = {
         });
         const totalQueryPage = Math.ceil(queryCount / limit);
 
+        paginationData.forEach((e) => {
+          delete e._id;
+        });
+
         return {
           statusCode: 200,
           message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
@@ -826,6 +830,10 @@ module.exports = {
         .skip(startIndex)
         .limit(limit)
         .toArray();
+
+      paginationData.forEach((e) => {
+        delete e._id;
+      });
 
       return {
         statusCode: 200,
