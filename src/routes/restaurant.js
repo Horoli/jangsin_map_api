@@ -756,14 +756,12 @@ module.exports = {
       const nullableSido = !sido ? null : sido;
 
       const nullableSigungu = !sigungu ? null : sigungu;
-      console.log(nullableSido);
-      console.log(nullableSigungu);
 
       const paginationData = await restaurantCol
         .find({
           source: source,
-          address_sido: nullableSido,
-          address_sigungu: nullableSigungu,
+          address_sido: nullableSido ?? "",
+          address_sigungu: nullableSigungu ?? "",
         })
         .skip(startIndex)
         .limit(limit)
