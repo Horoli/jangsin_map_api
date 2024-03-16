@@ -749,8 +749,6 @@ module.exports = {
 
       */
 
-      const project = { _id: 0 };
-
       if (sido !== undefined && sigungu !== undefined) {
         const sigunguQueryData = await restaurantCol
           .find({
@@ -758,12 +756,13 @@ module.exports = {
             address_sido: sido,
             address_sigungu: sigungu,
           })
-          .project(project)
           .skip(startIndex)
           .limit(limit)
           .toArray();
 
-        console.log(sigunguQueryData);
+        sigunguQueryData.forEach((e) => {
+          delete e._id;
+        });
 
         const queryCount = await restaurantCol.count({
           address_sido: sido,
@@ -793,7 +792,6 @@ module.exports = {
       if (sido !== undefined) {
         const queryData = await restaurantCol
           .find({ source: source, address_sido: sido })
-          .project(project)
           .skip(startIndex)
           .limit(limit)
           .toArray();
