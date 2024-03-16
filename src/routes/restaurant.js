@@ -766,9 +766,9 @@ module.exports = {
           .toArray();
 
         const queryCount = await restaurantCol.count({
+          source: source,
           address_sido: sido,
           address_sigungu: sigungu,
-          source: source,
         });
         const totalQueryPage = Math.ceil(queryCount / limit);
         return {
