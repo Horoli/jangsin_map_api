@@ -750,7 +750,7 @@ module.exports = {
       */
 
       if (sido !== undefined && sigungu !== undefined) {
-        const sigunguQueryData = await restaurantCol
+        const paginationData = await restaurantCol
           .find({
             source: source,
             address_sido: sido,
@@ -760,7 +760,7 @@ module.exports = {
           .limit(limit)
           .toArray();
 
-        sigunguQueryData.forEach((e) => {
+        paginationData.forEach((e) => {
           delete e._id;
         });
 
@@ -778,7 +778,7 @@ module.exports = {
             dataCount: queryCount,
             total_page: totalQueryPage,
             selected_page: selectedPage,
-            pagination_data: sigunguQueryData,
+            pagination_data: paginationData,
           },
         };
       }
@@ -790,7 +790,7 @@ module.exports = {
       */
 
       if (sido !== undefined) {
-        const queryData = await restaurantCol
+        const paginationData = await restaurantCol
           .find({ source: source, address_sido: sido })
           .skip(startIndex)
           .limit(limit)
@@ -810,7 +810,7 @@ module.exports = {
             dataCount: queryCount,
             total_page: totalQueryPage,
             selected_page: selectedPage,
-            pagination_data: queryData,
+            pagination_data: paginationData,
           },
         };
       }
@@ -820,7 +820,7 @@ module.exports = {
 
       if (selectedPage > totalPage)
         return Utility.ERROR(req.raw.url, "page is over", 400);
-      const getPagination = await restaurantCol
+      const paginationData = await restaurantCol
         .find({ source: source })
         .project(project)
         .skip(startIndex)
@@ -835,7 +835,7 @@ module.exports = {
           dataCount: totalDataCount,
           total_page: totalPage,
           selected_page: selectedPage,
-          pagination_data: getPagination,
+          pagination_data: paginationData,
         },
       };
     },
