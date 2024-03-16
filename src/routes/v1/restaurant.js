@@ -749,109 +749,124 @@ module.exports = {
 
       */
 
-      if (sido !== undefined && sigungu !== undefined) {
-        const paginationData = await restaurantCol
-          .find({
-            source: source,
-            address_sido: sido,
-            address_sigungu: sigungu,
-          })
-          .skip(startIndex)
-          .limit(limit)
-          .toArray();
+      const nullableSido = !sido ? null : sido;
+      const nullableSigungu = !sigungu ? null : sigungu;
 
-        await Promise.all(
-          paginationData.forEach((e) => {
-            delete e._id;
-          })
-        );
-
-        const queryCount = await restaurantCol.count({
-          address_sido: sido,
-          address_sigungu: sigungu,
-          source: source,
-        });
-        const totalQueryPage = Math.ceil(queryCount / limit);
-        return {
-          statusCode: 200,
-          message: `sido + sigungu || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
-          data: {
-            limit: limit,
-            dataCount: queryCount,
-            total_page: totalQueryPage,
-            selected_page: selectedPage,
-            pagination_data: paginationData,
-          },
-        };
-      }
-
-      /*
-
-        sido만 입력 됐을 경우, sido로 쿼리
-
-      */
-
-      if (sido !== undefined) {
-        const paginationData = await restaurantCol
-          .find({ source: source, address_sido: sido })
-          .skip(startIndex)
-          .limit(limit)
-          .toArray();
-
-        const queryCount = await restaurantCol.count({
-          source: source,
-          address_sido: sido,
-        });
-        const totalQueryPage = Math.ceil(queryCount / limit);
-
-        await Promise.all(
-          paginationData.forEach((e) => {
-            delete e._id;
-          })
-        );
-
-        return {
-          statusCode: 200,
-          message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
-          data: {
-            limit: limit,
-            dataCount: queryCount,
-            total_page: totalQueryPage,
-            selected_page: selectedPage,
-            pagination_data: paginationData,
-          },
-        };
-      }
-
-      const totalDataCount = await restaurantCol.count({ source: source });
-      const totalPage = Math.ceil(totalDataCount / limit);
-
-      if (selectedPage > totalPage)
-        return Utility.ERROR(req.raw.url, "page is over", 400);
       const paginationData = await restaurantCol
-        .find({ source: source })
-        .project(project)
+        .find({
+          source: source,
+          address_sido: nullableSido,
+          address_sigungu: nullableSigungu,
+        })
         .skip(startIndex)
         .limit(limit)
         .toArray();
 
-      await Promise.all(
-        paginationData.forEach((e) => {
-          delete e._id;
-        })
-      );
+      const queryCount = await restaurantCol.count({
+        address_sido: nullableSido,
+        address_sigungu: nullableSigungu,
+        source: source,
+      });
+
+      const totalQueryPage = Math.ceil(queryCount / limit);
 
       return {
         statusCode: 200,
-        message: `total_page : ${totalPage} || pagination : ${selectedPage}`,
+        message: `sido + sigungu || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
         data: {
           limit: limit,
-          dataCount: totalDataCount,
-          total_page: totalPage,
+          dataCount: queryCount,
+          total_page: totalQueryPage,
           selected_page: selectedPage,
           pagination_data: paginationData,
         },
       };
+
+      // if (sido !== undefined && sigungu !== undefined) {
+      //   const paginationData = await restaurantCol
+      //     .find({
+      //       source: source,
+      //       address_sido: !sido ? null : sido,
+      //       address_sigungu: !sigungu ? null : sigungu,
+      //     })
+      //     .skip(startIndex)
+      //     .limit(limit)
+      //     .toArray();
+
+      //   const queryCount = await restaurantCol.count({
+      //     address_sido: sido,
+      //     address_sigungu: sigungu,
+      //     source: source,
+      //   });
+      //   const totalQueryPage = Math.ceil(queryCount / limit);
+      //   return {
+      //     statusCode: 200,
+      //     message: `sido + sigungu || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
+      //     data: {
+      //       limit: limit,
+      //       dataCount: queryCount,
+      //       total_page: totalQueryPage,
+      //       selected_page: selectedPage,
+      //       pagination_data: paginationData,
+      //     },
+      //   };
+      // }
+
+      // /*
+
+      //   sido만 입력 됐을 경우, sido로 쿼리
+
+      // */
+
+      // if (sido !== undefined) {
+      //   const paginationData = await restaurantCol
+      //     .find({ source: source, address_sido: sido })
+      //     .skip(startIndex)
+      //     .limit(limit)
+      //     .toArray();
+
+      //   const queryCount = await restaurantCol.count({
+      //     source: source,
+      //     address_sido: sido,
+      //   });
+      //   const totalQueryPage = Math.ceil(queryCount / limit);
+
+      //   return {
+      //     statusCode: 200,
+      //     message: `sido || total_page : ${totalQueryPage} || pagination : ${selectedPage}`,
+      //     data: {
+      //       limit: limit,
+      //       dataCount: queryCount,
+      //       total_page: totalQueryPage,
+      //       selected_page: selectedPage,
+      //       pagination_data: paginationData,
+      //     },
+      //   };
+      // }
+
+      // const totalDataCount = await restaurantCol.count({ source: source });
+      // const totalPage = Math.ceil(totalDataCount / limit);
+
+      // if (selectedPage > totalPage)
+      //   return Utility.ERROR(req.raw.url, "page is over", 400);
+      // const paginationData = await restaurantCol
+      //   .find({ source: source })
+      //   .project(project)
+      //   .skip(startIndex)
+      //   .limit(limit)
+      //   .toArray();
+
+      // return {
+      //   statusCode: 200,
+      //   message: `total_page : ${totalPage} || pagination : ${selectedPage}`,
+      //   data: {
+      //     limit: limit,
+      //     dataCount: totalDataCount,
+      //     total_page: totalPage,
+      //     selected_page: selectedPage,
+      //     pagination_data: paginationData,
+      //   },
+      // };
     },
   },
 
